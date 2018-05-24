@@ -1,168 +1,284 @@
-;;; gnus configuration
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-(require 'nnir)
-
-;;main
-(setq user-mail-address "kubb18@gmail.com"
-      user-full-name "Johnny R."
-      imap-shell-program "dovecot -c ~/.dovecotrc --exec-mail imap"
-      gnus-ignored-from-addresses "Johnny R"
-      gnus-use-full-window t)
-
-(setq gnus-select-method
-      '(nnimap "Mail"
-               (nnimap-address "localhost")
-               (nnimap-stream network)
-               (nnimap-authenticator login)))
-(setq smtpmail-smtp-server "smtp.gmail.com"
-      smtpmail-smtp-service 587)
+(setq user-mail-address "jeko2000@yandex.com"
+      user-full-name "Johnny Ruiz")
 
 (setq gnus-check-new-newsgroups nil
-      gnus-save-newsrc-file nil
-      gnus-subscribe-newsgroup-method 'gnus-subscribe-zombies
-      gnus-save-newsrc-file t
-      gnus-use-dribble-file t
-      gnus-ignored-newsgroups "^to\\.\\|^[0-9. ]+\\( \\|$\\)\\|^[\"]\"[#'()]"
-      gnus-read-active-file t
-      gnus-large-newsgroup 1000
-      gnus-auto-select-first t
-      gnus-auto-select-subject 'first
-      gnus-group-default-list-level 5
-      gnus-group-sort-function 'gnus-group-sort-by-unread)
+      gnus-save-killed-list     nil)
 
-;; cron hooks
-(defun start-mail-cron ()
-  (let ((start "~/rep/emacs-config/scripts/start-mail-cron-job.sh"))
-    (if (file-exists-p start)
-          (shell-command start "*cron*" nil))))
+(setq gnus-subscribe-newsgroup-method 'gnus-subscribe-alphabetically
+      gnus-subscribe-hierarchical-interactive nil)
 
-(defun stop-mail-cron ()
-  (let ((stop "~/rep/emacs-config/scripts/stop-mail-cron-job.sh"))
-    (if (file-exists-p stop)
-          (shell-command stop "*cron*" nil))))
+(setq gnus-save-newsrc-file nil
+      gnus-read-newsrc-file nil)
 
-(add-hook 'gnus-started-hook 'start-mail-cron)
-(add-hook 'gnus-exit-gnus-hook 'stop-mail-cron)
+(setq gnus-use-dribble-file t
+      gnus-always-read-dribble-file t)
 
-;; group buffer
+(setq gnus-read-active-file nil)
 
-(setq gnus-summary-next-group-on-exit t
-      gnus-group-line-format "%M%S%p%P%5y|%-5t %(%-20,20g%)\n"
-      gnus-topic-line-format "%i %(%{%n%}%) (%A)%v\n")
+(setq gnus-check-bogus-newsgroups nil)
 
-(add-hook 'gnus-select-group-hook 'gnus-group-set-timestamp)
-(add-hook 'gnus-group-mode-hook 'gnus-topic-mode)
+(setq gnus-group-line-format "%S%p%P%M%5y: %(%B%g%B%)\n")
+
+(defvar jr/gnus-unread-count-threshold 1000
+  "Threshold count of the number of unread articles in a group.")
+
+(defface jr/gnus-group-too-many-unread-face
+  '((((class color) (background dark))
+     (:foreground "red" :bold t))
+    (((class color) (background light))
+     (:foreground "pink" :bold t)))
+  "Face used when a group has more than
+  `jr/gnus-unread-count-threshold' unread articles.")
+
+(push '((> unread jr/gnus-unread-count-threshold) . jr/gnus-group-too-many-unread-face)
+      gnus-group-highlight)
+
 (add-hook 'gnus-group-mode-hook 'hl-line-mode)
 
-;; summary
+(setq gnus-large-newsgroup 5000
+      gnus-large-ephemeral-newsgroup 5000)
 
-(setq
- gnus-summary-line-format
- ;;"%0{%U%R%z%}%3{│%}%1{%&user-date;%}%3{│%}  %4{%-40,40f%}  %3{│%} %1{%B%}%s\n"
- "%U%R%z%3{│%}%&user-date;%3{│%}  %-40,40f  %3{│%} %B%s\n"
- gnus-user-date-format-alist '((t . "%Y-%m-%d %H:%M"))
- gnus-summary-thread-gathering-function 'gnus-gather-threads-by-references)
+(setq gnus-newsgroup-maximum-articles nil)
+
+(setq gnus-auto-select-first t
+      gnus-auto-select-subject 'first)
+
+(defun jr/gnus-group-catchup-group-hook ()
+  "Hook to run as part of `gnus-group-catchup-group-hook'."
+  (message "Group successfully caught up."))
+
+(add-hook 'gnus-group-catchup-group-hook 'jr/gnus-group-catchup-group-hook)
+
+(setq gnus-group-default-list-level 3)
+
+(setq gnus-group-use-permanent-levels nil)
+
+(setq gnus-activate-level 3)
+
+(add-hook 'gnus-summary-exit-hook 'gnus-summary-bubble-group)
+(add-hook 'gnus-summary-exit-hook 'gnus-group-sort-groups-by-rank)
+
+(setq gnus-activate-foreign-newsgroups 3)
+
+(setq gnus-parameters
+      '(("list"
+         (subscribed t))
+        ("list\\.emacs\\.devel"
+         (to-address . "emacs-devel@gnu.org")
+         (to-list . "emacs-devel@gnu.org"))
+        ("list\\.emacs\\.devel$"
+         (to-address . "emacs-devel@gnu.org")
+         (to-list . "emacs-devel@gnu.org"))
+        ("list\\.emacs\\.help$"
+         (to-address . "help-gnu-emacs@gnu.org")
+         (to-list . "help-gnu-emacs@gnu.org"))
+        ("list\\.emacs\\.bugs$"
+         (to-list . "bug-gnu-emacs@gnu.org"))
+        ("list\\.emacs\\.bugs\\.tracker"
+         (list-identifier . "\\[debbugs-tracker\\]"))
+
+        ("list\\.emacs\\.orgmode"
+         (to-address . "emacs-orgmode@gnu.org")
+         (to-list . "emacs-orgmode@gnu.org"))
+
+        ("list\\.savannah\\.announce"
+         (to-address . "savannah-announce@gnu.org")
+         (to-list . "savannah-announce@gnu.org"))
+
+        ("list\\.arch\\.security"
+         (to-address . "arch-security@archlinux.org")
+         (to-list . "arch-security@archlinux.org"))
+        ("list\\.arch\\.events"
+         (to-address . "arch-events@archlinux.org")
+         (to-list . "arch-events@archlinux.org"))
+        ("list\\.arch\\.announce"
+         (to-address . "arch-announce@archlinux.org")
+         (to-list . "arch-announce@archlinux.org"))))
+
+(setq gnus-list-groups-with-ticked-articles nil)
+
+(setq gnus-group-sort-function '(gnus-group-sort-by-alphabet gnus-group-sort-by-rank))
+
+(add-hook 'gnus-suspend-gnus-hook 'gnus-group-save-newsrc)
+
+(add-hook 'gnus-group-mode-hook 'gnus-topic-mode)
+
+(setq gnus-topic-line-format "%i[ %A: %(%{%n%}%) ]%v\n")
+
+(setq gnus-topic-display-empty-topics nil)
+
+(defun jr/gnus-goto-buffer-group ()
+  (interactive)
+  (gnus-group-jump-to-group "buffer"))
+
+(defun jr/gnus-goto-sent-group ()
+  (interactive)
+  (gnus-group-jump-to-group "Sent"))
+
+(defun jr/gnus-goto-references-group ()
+  (interactive)
+  (gnus-group-jump-to-group "references"))
+
+(define-key gnus-group-mode-map "vb"
+  'jr/gnus-goto-buffer-group)
+
+(define-key gnus-group-mode-map "vs"
+  'jr/gnus-goto-sent-group)
+
+(define-key gnus-group-mode-map "vr"
+  'jr/gnus-goto-references-group)
+
+(setq gnus-summary-line-format
+      "%U%R%z%&user-date;     %-40,40f    %-2,2t     %B%s\n"
+      gnus-user-date-format-alist '((t . "%Y-%m-%d %H:%M")))
+
+(setq gnus-sum-thread-tree-false-root      ""
+      gnus-sum-thread-tree-single-indent   ""
+      gnus-sum-thread-tree-root            ""
+      gnus-sum-thread-tree-vertical        "| "
+      gnus-sum-thread-tree-leaf-with-other "+-> "
+      gnus-sum-thread-tree-single-leaf     "\\-> "
+      gnus-sum-thread-tree-indent          " ")
+
+(setq gnus-extra-headers '(To Cc Keywords Gcc Newsgroups X-GM-LABELS User-Agent))
+
+(setq gnus-ignored-from-addresses "\\(jeko2000\\|kubb18\\)")
+
+(setq nnmail-extra-headers gnus-extra-headers)
+
+(defface jr/gnus-summary-expirable-face
+  '((((class color) (background dark))
+     (:foreground "grey30" :italic t :strike-through t))
+    (((class color) (background light))
+     (:foreground "grey55" :italic t :strike-through t)))
+  "Face for articles marked as expirable."
+  :group 'gnus-summary-visual)
+
+(push '((eq mark gnus-expirable-mark) . jr/gnus-summary-expirable-face)
+      gnus-summary-highlight)
+
+(gnus-delay-initialize)
+
+(setq gnus-delay-default-hour 7
+      gnus-delay-default-delay "1d")
+
+(add-hook 'gnus-started-hook 'gnus-delay-send-queue)
+
+(setq message-draft-headers (remove 'Date message-draft-headers))
+
+(setq gnus-summary-goto-unread nil)
+
+(setq gnus-summary-make-false-root 'adopt)
+
+(setq gnus-summary-gather-subject-limit 25)
+
+(setq gnus-thread-hide-subtree t)
+
+(setq gnus-thread-ignore-subject nil)
+
+(setq gnus-asynchronous t)
+
+(setq gnus-use-cache t
+      gnus-cache-directory "~/mail/cache/"
+      gnus-use-long-file-name t)
+
+(setq gnus-uncacheable-groups "^nnml")
+
+(setq gnus-default-article-saver 'gnus-summary-save-in-mail
+      gnus-article-save-directory "~/mail/saved/"
+      gnus-prompt-before-saving nil)
+
+(setq mm-text-html-renderer 'gnus-w3m)
+
+(setq gnus-signature-separator '("^-- $" "^-- *$"))
+
+(setq gnus-summary-display-while-building 100)
 
 (add-hook 'gnus-summary-mode-hook 'hl-line-mode)
 
-;;Threading
-(setq gnus-thread-indent-level 1)
+(setq gnus-visible-headers "^From:\\|^Newsgroups:\\|^Subject:\\|^Date:\\|^Followup-To:\\|^Reply-To:\\|^Organization:\\|^Summary:\\|^Keywords:\\|^To:\\|^[BGF]?Cc:\\|^Posted-To:\\|^Mail-Copies-To:\\|^Mail-Followup-To:\\|^Apparently-To:\\|^Gnus-Warning:\\|^Resent-From:\\|^User-Agent: "
+      gnus-sorted-header-list '("^Date:" "^From:" "^Summary:" "^Keywords:" "^Newsgroups:" "^Followup-To:" "^To:" "^Reply-To:" "^Cc:" "^Organization:" "^Subject:" "User-Agent:"))
 
-;; Articles
+(setq gnus-treat-date 'head
+      gnus-treat-hide-citation-maybe t
+      gnus-treat-strip-cr t
+      gnus-treat-strip-leading-blank-lines t
+      gnus-treat-strip-multiple-blank-lines t
+      gnus-treat-strip-trailing-blank-lines t
+      gnus-treat-unsplit-urls t)
+
+(setq gnus-single-article-buffer nil)
+
+(setq gnus-inhibit-images t)
+
+(setq gnus-mailing-list-groups "\\`list\\.")
+
+(add-hook 'message-send-hook 'ispell-message)
+
+(defun jr/gnus-select-dispatch-dictionary-on-group ()
+  "Run `ispell-change-dictionary' with a dictionary appropriate for the group."
+  (cond
+   ((string-match
+     "^list\\.es\\." (gnus-group-real-name gnus-newsgroup-name))
+    (ispell-change-dictionary "spanish"))
+   ((string-match
+     "^list\\.ru\\." (gnus-group-real-name gnus-newsgroup-name))
+    (ispell-change-dictionary "russian"))
+   ((string-match
+     "^list\\.fr\\." (gnus-group-real-name gnus-newsgroup-name))
+    (ispell-change-dictionary "francais"))
+   (t
+    (ispell-change-dictionary "english"))))
+
+(add-hook 'gnus-select-group-hook 'jr/gnus-select-dispatch-dictionary-on-group)
+
+(define-key gnus-summary-mode-map "F" 'gnus-summary-wide-reply-with-original)
+(define-key gnus-article-mode-map "F" 'gnus-article-wide-reply-with-original)
+
+(setq gnus-message-archive-group '((list "nnimap+local:Sent" (format-time-string "sent.%Y-%m")))
+      gnus-gcc-mark-as-read t)
+
 (setq gnus-posting-styles
       '((".*"
          (signature user-full-name))
-        (and (eq system-type 'gnu/linux)
-             (file-exists-p "~/.signature"))
-        (signature-file "~/.signature")))
+        ((file-exists-p "~/.signature")
+         (signature-file "~/.signature"))
+        ((header "to" "kubb18@gmail.com")
+         (address "kubb18@gmail.com")
+         ("X-Message-SMTP-Method" "smtp smtp.gmail.com 465"))
+        ((header "to" "jeko2000@yandex.com")
+         ("X-Message-SMTP-Method" "smtp smtp.yandex.ru 465")
+         (address "jeko2000@yandex.com"))
+        ((header "to" "kubb18@me.com")
+         ("X-Message-SMTP-Method" "smtp.mail.me.com")
+         (address "kubb18@me.com"))
+        ((header "to" "kubb18@icloud.com")
+         ("X-Message-SMTP-Method" "smtp.mail.me.com")
+         (address "kubb18@icloud.com"))))
 
-(setq gnus-visible-headers "^From:\\|^To:\\|^Subject:\\|^Date:")
-(setq gnus-treat-hide-citation t)
-(setq mm-discouraged-alternatives '("text/html" "text/richtext"))
+(setq gnus-message-replysign t)
 
-;;Scoring
-(setq gnus-summary-exit-hook 'gnus-summary-bubble-group)
+(setq gnus-select-method
+      '(nnimap "local"
+               (nnimap-stream plain)
+               (nnimap-address "localhost")))
 
-;;bbdb
-(require 'bbdb)
-(bbdb-initialize 'message 'gnus 'sendmail)
-(add-hook 'gnus-startup-hook 'bbdb-insinuate-gnus)
-(setq bbdb/mail-auto-create-p t
-      bbdb/news-auto-create-p t)
-(setq bbdb-send-mail-style 'gnus)
+(setq nnmail-expiry-wait 30)
 
-(add-hook 'message-mode-hook
-          '(lambda ()
-             (flyspell-mode t)
-             (local-set-key "<TAB>" 'bbdb-complete-name)))
+(setq gnus-novice-user nil)
 
-;;Other
-(setq gnus-always-read-dribble-file t)
-(setq gnus-summary-display-while-building 10)
-
-(defun exit-gnus-on-exit () 
-  (if (and (fboundp 'gnus-group-exit)
-           (gnus-alive-p))
-      (with-current-buffer (get-buffer "*Group*")
-        (let (gnus-interactive-exit)
-          (gnus-group-exit)))))
-
-(add-hook 'kill-emacs-hook 'exit-gnus-on-exit)
-
-;;layout
-
-(defface gnus-summary-expirable-face
-  '((((class color) (background dark))
-     (:foreground "grey50" :italic t :strike-through t))
-    (((class color) (background light))
-     (:foreground "grey55" :italic t :strike-through t)))
-  "Face used to highlight articles marked as expirable."
-  :group 'gnus-summary-visual)
-
-(push '((eq mark gnus-expirable-mark) . gnus-summary-expirable-face)
-      gnus-summary-highlight)
-
-(if window-system
-    (setq
-     gnus-sum-thread-tree-false-root      ""
-     gnus-sum-thread-tree-single-indent   ""
-     gnus-sum-thread-tree-root            ""
-     gnus-sum-thread-tree-vertical        "|"
-     gnus-sum-thread-tree-leaf-with-other "+-> "
-     gnus-sum-thread-tree-single-leaf     "\\-> "
-     gnus-sum-thread-tree-indent          " "))
+(setq gnus-interactive-exit 'quiet)
 
 (gnus-add-configuration
  '(article
    (horizontal 1.0
-               (vertical 30 (group 1.0))
+               (vertical 40 (group 1.0))
                (vertical 1.0
-                         (summary 0.40 point)
+                         (summary 0.16 point)
                          (article 1.0)))))
 
 (gnus-add-configuration
  '(summary
    (horizontal 1.0
-               (vertical 30 (group 1.0))
+               (vertical 40 (group 1.0))
                (vertical 1.0 (summary 1.0 point)))))
-
-;; send message
-
-(defun jj-gnus-custom-message-send-hook ()
-  (ispell-message))
-
-(add-hook 'message-send-hook 'jj-gnus-custom-message-send-hook)
-
-;;sorting
-
-(setq gnus-thread-sort-functions
-      '(gnus-thread-sort-by-number
-        gnus-thread-sort-by-subject
-        (not gnus-thread-sort-by-total-score)))
-
-;;article backlog
-(setq gnus-keep-backlog 25)
-
-;;security
-(setq mm-verify-option 'always)
-

@@ -1,16 +1,11 @@
-# dot-gnus
+# Gnus Configuration
 
-This is my current dot-gnus configuration file.
+Here's my current gnus configuration rewritten as an org file for easy
+reference.
 
-## Dependencies
-
-
-* [offlineimap](https://github.com/OfflineIMAP/offlineimap) to download my emails as Maildirs
-* [dovecot](https://www.dovecot.org/) to serve as a local IMAP server
-
-Also, since gnus expects to find its init file under ~/.gnus, we should have the following line
-somewhere in the emacs init file:
+Please add the following to your init.el file (or equivalent) to
+ensure gnus loads the configuration..
 
 ```emacs-lisp
-(setq gnus-init-file "~/location_of_dot_gnus.el") ; where ~ stands for /home/$USER
+(setq gnus-init-file (car (org-babel-tangle-file "~/location_of_dot_gnus.org")))
 ```

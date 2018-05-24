@@ -1,0 +1,1355 @@
+#+TITLE: Gnus Configuration
+#+AUTHOR: Johnny Ruiz
+#+STARTUP: showeverything
+#+OPTIONS: toc:4
+
+* Starting Up
+  We begin by setting the user-full-name and user-mail-address.
+  #+begin_src emacs-lisp :tangle yes
+(setq user-mail-address "jeko2000@yandex.com"
+      user-full-name "Johnny Ruiz")
+  #+end_src
+** Finding news
+   Please see [[*Select Methods][Select Methods]].
+** New Groups
+   As I use gnus mostly for mail, I don't need gnus to check for new
+   newsgroups automatically. I can do it manually in case I add new
+   folders from outside gnus. As such, there is no reason to keep a list
+   of dead (e.g., killed) groups.
+   #+begin_src emacs-lisp :tangle yes
+(setq gnus-check-new-newsgroups nil
+      gnus-save-killed-list nil)
+   #+end_src
+
+** Subscription Methods
+   When gnus finds a new group, I want to be subscribed to it because
+   it's likely a new, important mail folder.
+   #+begin_src emacs-lisp :tangle yes
+(setq gnus-subscribe-newsgroup-method 'gnus-subscribe-alphabetically
+      gnus-subscribe-hierarchical-interactive nil)
+   #+end_src
+
+** Startup Files
+   I only use gnus to read my news/mail. As such, we do not need the
+   generic .newsrc file.
+   #+begin_src emacs-lisp :tangle yes
+(setq gnus-save-newsrc-file nil
+      gnus-read-newsrc-file nil)
+   #+end_src
+
+** Auto Save
+   Gnus uses a dribble file that keeps track of changes to gnus data. If
+   emacs crashes, I want this dribble file read without a prompt.
+   #+begin_src emacs-lisp :tangle yes
+(setq gnus-use-dribble-file t
+      gnus-always-read-dribble-file t)
+   #+end_src
+
+** The Active File
+   The active file keeps track of all active groups and articles on the
+   server. I disable it here altogether.
+   #+begin_src emacs-lisp :tangle yes
+(setq gnus-read-active-file nil)
+   #+end_src
+
+** Startup Variables
+   Let's disable automatic checking of bogus groups since it doesn't
+   happen very often in mail.
+   #+begin_src emacs-lisp :tangle yes
+(setq gnus-check-bogus-newsgroups nil)
+   #+end_src
+* Group Buffer
+** Group Buffer Format
+*** Group Line Specification
+    The [[info:gnus#Group%20Line%20Specification][manual]] recommends always having a colon in the group line format.
+    I oblige with the following.
+    #+begin_src emacs-lisp :tangle yes
+(setq gnus-group-line-format "%S%p%P%M%5y: %(%B%g%B%)\n")
+    #+end_src
+    As a reference, here's the list of all [[*Group Line Specs][format characters]].
+*** Group Highlighting
+    I would like to have groups with large numbers of unread messages to
+    be highlighted differently. Let's set that up
+    #+begin_src emacs-lisp :tangle yes
+(defvar jr/gnus-unread-count-threshold 1000
+  "Threshold count of the number of unread articles in a group.")
+
+(defface jr/gnus-group-too-many-unread-face
+  '((((class color) (background dark))
+     (:foreground "red" :bold t))
+    (((class color) (background light))
+     (:foreground "pink" :bold t)))
+  "Face used when a group has more than
+  `jr/gnus-unread-count-threshold' unread articles.")
+
+(push '((> unread jr/gnus-unread-count-threshold) . jr/gnus-group-too-many-unread-face)
+      gnus-group-highlight)
+    #+end_src
+
+    Finally, lets turn on hl-line-mode in the group mode to make the location
+    of the point more visible.
+    #+begin_src emacs-lisp :tangle yes
+(add-hook 'gnus-group-mode-hook 'hl-line-mode)
+    #+end_src
+** Selecting a group
+   The connection between gnus and my dovecot server is very fast. Let's
+   tell gnus that a large newsgroup for us has at least 5000 articles
+   instead of the default of 200. The same applies for ephemeral groups.
+   #+begin_src emacs-lisp :tangle yes
+(setq gnus-large-newsgroup 5000
+      gnus-large-ephemeral-newsgroup 5000)
+   #+end_src
+
+   We also don't want to give gnus a reason to ignore old articles.
+   #+begin_src emacs-lisp :tangle yes
+(setq gnus-newsgroup-maximum-articles nil)
+   #+end_src
+
+   When we enter a newsgroup with <SPC>, let's have gnus open the _first_
+   article in the group.
+   #+begin_src emacs-lisp :tangle yes
+(setq gnus-auto-select-first t
+      gnus-auto-select-subject 'first)
+   #+end_src
+
+** Group Data
+   Lets create a very simple hook to give us a message once a group has
+   been caught up with 'c'.
+   #+begin_src emacs-lisp :tangle yes
+(defun jr/gnus-group-catchup-group-hook ()
+  "Hook to run as part of `gnus-group-catchup-group-hook'."
+  (message "Group successfully caught up."))
+
+(add-hook 'gnus-group-catchup-group-hook 'jr/gnus-group-catchup-group-hook)
+   #+end_src
+
+** Group Level
+   Let's make gnus show us important groups by default, namely those
+   whose level is 3 or lower.
+   #+begin_src emacs-lisp :tangle yes
+(setq gnus-group-default-list-level 3)
+   #+end_src
+
+   Let's disable the user of permanent levels for now.
+   #+begin_src emacs-lisp :tangle yes
+(setq gnus-group-use-permanent-levels nil)
+   #+end_src
+
+   Gnus shouldn't bother with activating groups that aren't very
+   important. Let's set the gnus-activate-level to 3.
+   #+begin_src emacs-lisp :tangle yes
+(setq gnus-activate-level 3)
+   #+end_src
+
+** Group Score
+   Let's have gnus sort the group buffer based on the groups we read most
+   often.
+   #+begin_src emacs-lisp :tangle yes
+(add-hook 'gnus-summary-exit-hook 'gnus-summary-bubble-group)
+(add-hook 'gnus-summary-exit-hook 'gnus-group-sort-groups-by-rank)
+   #+end_src
+
+** Foreign Groups
+   I like to read RSS feeds in gnus as well but don't like having to wait
+   until new articles are checked at startup. Let's make sure gnus only
+   checks important foreign groups
+   #+begin_src emacs-lisp :tangle yes
+(setq gnus-activate-foreign-newsgroups 3)
+   #+end_src
+
+** Group parameters
+   [[*Group parameters][Group parameters]] are useful to store information about particular
+   groups. Instead of setting this information via 'G p' and 'G c'
+   commands, let's set it directly onto the variable.
+   #+begin_src emacs-lisp :tangle yes
+(setq gnus-parameters
+      '(("list"
+         (subscribed t))
+        ("list\\.emacs\\.devel"
+         (to-address . "emacs-devel@gnu.org")
+         (to-list . "emacs-devel@gnu.org"))
+        ("list\\.emacs\\.devel$"
+         (to-address . "emacs-devel@gnu.org")
+         (to-list . "emacs-devel@gnu.org"))
+        ("list\\.emacs\\.help$"
+         (to-address . "help-gnu-emacs@gnu.org")
+         (to-list . "help-gnu-emacs@gnu.org"))
+        ("list\\.emacs\\.bugs$"
+         (to-list . "bug-gnu-emacs@gnu.org"))
+        ("list\\.emacs\\.bugs\\.tracker"
+         (list-identifier . "\\[debbugs-tracker\\]"))
+
+        ("list\\.emacs\\.orgmode"
+         (to-address . "emacs-orgmode@gnu.org")
+         (to-list . "emacs-orgmode@gnu.org"))
+
+        ("list\\.savannah\\.announce"
+         (to-address . "savannah-announce@gnu.org")
+         (to-list . "savannah-announce@gnu.org"))
+
+        ("list\\.arch\\.security"
+         (to-address . "arch-security@archlinux.org")
+         (to-list . "arch-security@archlinux.org"))
+        ("list\\.arch\\.events"
+         (to-address . "arch-events@archlinux.org")
+         (to-list . "arch-events@archlinux.org"))
+        ("list\\.arch\\.announce"
+         (to-address . "arch-announce@archlinux.org")
+         (to-list . "arch-announce@archlinux.org"))))
+   #+end_src
+
+   Let's also ask gnus not to list groups only because they have ticked
+   articles.
+   #+begin_src emacs-lisp :tangle yes
+(setq gnus-list-groups-with-ticked-articles nil)
+   #+end_src
+
+** Sorting Groups
+   Let's set the default group sorting function to be as sorting by
+   alphabet and then rank.
+   #+begin_src emacs-lisp :tangle yes
+(setq gnus-group-sort-function '(gnus-group-sort-by-alphabet gnus-group-sort-by-rank))
+   #+end_src
+
+** Exiting gnus
+   Let's have gnus save its start-up files upon suspension.
+   #+begin_src emacs-lisp :tangle yes
+(add-hook 'gnus-suspend-gnus-hook 'gnus-group-save-newsrc)
+   #+end_src
+
+** Group Topics
+   I am subscribed to several mailing lists and having these grouped by
+   topic is very handy. As such, let's enable topic mode.
+   #+begin_src emacs-lisp :tangle yes
+(add-hook 'gnus-group-mode-hook 'gnus-topic-mode)
+   #+end_src
+
+*** Topic Variables
+    There are comparatively few topic variables. As such, we set the
+    following topic line format:
+    #+begin_src emacs-lisp :tangle yes
+(setq gnus-topic-line-format "%i[ %A: %(%{%n%}%) ]%v\n")
+    #+end_src
+
+    It is distracting having empty topics show in the Group buffer. Let's
+    suppress those.
+    #+begin_src emacs-lisp :tangle yes
+(setq gnus-topic-display-empty-topics nil)
+    #+end_src
+
+** Misc Group Stuff
+   Since the 'v' key is reserved for users (e.g., us), let's add a few bindings.
+   #+begin_src emacs-lisp :tangle yes
+(defun jr/gnus-goto-buffer-group ()
+  (interactive)
+  (gnus-group-jump-to-group "buffer"))
+
+(defun jr/gnus-goto-sent-group ()
+  (interactive)
+  (gnus-group-jump-to-group "Sent"))
+
+(defun jr/gnus-goto-references-group ()
+  (interactive)
+  (gnus-group-jump-to-group "references"))
+
+(define-key gnus-group-mode-map "vb"
+  'jr/gnus-goto-buffer-group)
+
+(define-key gnus-group-mode-map "vs"
+  'jr/gnus-goto-sent-group)
+
+(define-key gnus-group-mode-map "vr"
+  'jr/gnus-goto-references-group)
+   #+end_src
+* Summary Buffer
+** Summary Buffer Format
+*** Summary Buffer Lines
+    Let's shoot for a simple looking summary buffer using specs from the [[*Summary Line Specs][Summary Line Specs]].
+    #+begin_src emacs-lisp :tangle yes
+(setq gnus-summary-line-format
+      "%U%R%z%&user-date;     %-40,40f    %-2,2t     %B%s\n"
+      gnus-user-date-format-alist '((t . "%Y-%m-%d %H:%M")))
+    #+end_src
+
+    Let's also customize the appearance of the thread three.
+    #+begin_src emacs-lisp :tangle yes
+(setq gnus-sum-thread-tree-false-root      ""
+      gnus-sum-thread-tree-single-indent   ""
+      gnus-sum-thread-tree-root            ""
+      gnus-sum-thread-tree-vertical        "| "
+      gnus-sum-thread-tree-leaf-with-other "+-> "
+      gnus-sum-thread-tree-single-leaf     "\\-> "
+      gnus-sum-thread-tree-indent          " ")
+    #+end_src
+
+*** To From Newsgroups
+    The gnus-extra-headers does not include the Cc header by default.
+    Let's add it ourselves.
+    #+begin_src emacs-lisp :tangle yes
+(setq gnus-extra-headers '(To Cc Keywords Gcc Newsgroups X-GM-LABELS User-Agent))
+    #+end_src
+
+    We also set the gnus-ignored-from-addresses to include personal email
+    addresses.
+    #+begin_src emacs-lisp :tangle yes
+(setq gnus-ignored-from-addresses "\\(jeko2000\\|kubb18\\)")
+    #+end_src
+
+    Finally, let's set nnmail-extra-headers to use the same as gnus-extra-headers.
+    #+begin_src emacs-lisp :tangle yes
+(setq nnmail-extra-headers gnus-extra-headers)
+    #+end_src
+
+*** Summary Highlighting
+    In order to visually distinguish expirable news, let's create a new
+    expirable face and add it to the gnus-group-highlight variable.
+    #+begin_src emacs-lisp :tangle yes
+(defface jr/gnus-summary-expirable-face
+  '((((class color) (background dark))
+     (:foreground "grey30" :italic t :strike-through t))
+    (((class color) (background light))
+     (:foreground "grey55" :italic t :strike-through t)))
+  "Face for articles marked as expirable."
+  :group 'gnus-summary-visual)
+
+(push '((eq mark gnus-expirable-mark) . jr/gnus-summary-expirable-face)
+      gnus-summary-highlight)
+    #+end_src
+** Delayed Articles
+   It's useful to be able to delay sending an email until a later time.
+   Let's enable this feature.
+   #+begin_src emacs-lisp :tangle yes
+(gnus-delay-initialize)
+   #+end_src
+
+   My work day starts at 7 o'clock so let's make this the default hour
+   for delayed messages.
+   #+begin_src emacs-lisp :tangle yes
+(setq gnus-delay-default-hour 7
+      gnus-delay-default-delay "1d")
+   #+end_src
+
+   Finally, let's have gnus check for delayed messages that are due to be
+   sent out when we start gnus.
+   #+begin_src emacs-lisp :tangle yes
+(add-hook 'gnus-started-hook 'gnus-delay-send-queue)
+   #+end_src
+
+   Oh, one more thing. The [[info:gnus#Delayed%20Articles][manual]] recommends removing the Date header
+   from message-draft-headers so that the Date header reflects the time
+   the message is actually sent.
+   #+begin_src emacs-lisp :tangle yes
+(setq message-draft-headers (remove 'Date message-draft-headers))
+   #+end_src
+** Marking Articles
+   The default behavior in gnus is to move the point to the next _unread_
+   article after a marking command. I prefer to simply go to the next
+   article whether unread or not.
+   #+begin_src emacs-lisp :tangle yes
+(setq gnus-summary-goto-unread nil)
+   #+end_src
+** Threading
+   When gnus is unable to find the root of a thread, let's have it make
+   the first orphaned article the parent.
+   #+begin_src emacs-lisp :tangle yes
+(setq gnus-summary-make-false-root 'adopt)
+   #+end_src
+
+   In addition, let's have gnus treat articles as threads when their
+   subject lines match in the first 25 characters.
+   #+begin_src emacs-lisp :tangle yes
+(setq gnus-summary-gather-subject-limit 25)
+   #+end_src
+
+   Next, let's hide sub trees by default.
+   #+begin_src emacs-lisp :tangle yes
+(setq gnus-thread-hide-subtree t)
+   #+end_src
+   Finally, we ask gnus to treat changes of a subject in a thread as a
+   new thread.
+   #+begin_src emacs-lisp :tangle yes
+(setq gnus-thread-ignore-subject nil)
+   #+end_src
+** Asynchronous Article Fetching
+   Per the [[info:gnus#Asynchronous%20Fetching][manual]], let's enable asynchronous article fetching.
+   #+begin_src emacs-lisp :tangle yes
+(setq gnus-asynchronous t)
+   #+end_src
+** Article caching
+   Gnus is able to store ticked or dormant articles locally. This can be
+   useful on slow connections of any kind. Let's enable it.
+   #+begin_src emacs-lisp :tangle yes
+(setq gnus-use-cache t
+      gnus-cache-directory "~/mail/cache/"
+      gnus-use-long-file-name t)
+   #+end_src
+
+   That said, let's disable nnml groups from caching.
+   #+begin_src emacs-lisp :tangle yes
+(setq gnus-uncacheable-groups "^nnml")
+   #+end_src
+** Saving Articles
+   There's little need to save articles with my setup, but, let's set the
+   required variables to avoid having gnus over-prompting us.
+   #+begin_src emacs-lisp :tangle yes
+(setq gnus-default-article-saver 'gnus-summary-save-in-mail
+      gnus-article-save-directory "~/mail/saved/"
+      gnus-prompt-before-saving nil)
+   #+end_src
+** Article Washing
+   Let's ask gnus-w3m to render our HTML emails (since I still get those).
+   #+begin_src emacs-lisp :tangle yes
+(setq mm-text-html-renderer 'gnus-w3m)
+   #+end_src
+** Article Signature
+   The default signature separator (e.g., "^-- $") catches most
+   signatures except those from some Outlook email addresses which strip
+   the extra space.
+   #+begin_src emacs-lisp :tangle yes
+(setq gnus-signature-separator '("^-- $" "^-- *$"))
+   #+end_src
+** Various Summary Stuff
+   If I request gnus to open a newsgroup with lots of articles, I like to
+   have it update the display every 100 lines.
+   #+begin_src emacs-lisp :tangle yes
+(setq gnus-summary-display-while-building 100)
+   #+end_src
+
+   Next, let's enable hl-line-mode in the summary buffer.
+   #+begin_src emacs-lisp :tangle yes
+(add-hook 'gnus-summary-mode-hook 'hl-line-mode)
+   #+end_src
+* Article Buffer
+** Hiding Headers
+   Let's set some visible headers as default as well as the order in
+   which they should be displayed..
+   #+begin_src emacs-lisp :tangle yes
+(setq gnus-visible-headers "^From:\\|^Newsgroups:\\|^Subject:\\|^Date:\\|^Followup-To:\\|^Reply-To:\\|^Organization:\\|^Summary:\\|^Keywords:\\|^To:\\|^[BGF]?Cc:\\|^Posted-To:\\|^Mail-Copies-To:\\|^Mail-Followup-To:\\|^Apparently-To:\\|^Gnus-Warning:\\|^Resent-From:\\|^User-Agent: "
+      gnus-sorted-header-list '("^Date:" "^From:" "^Summary:" "^Keywords:" "^Newsgroups:" "^Followup-To:" "^To:" "^Reply-To:" "^Cc:" "^Organization:" "^Subject:" "User-Agent:"))
+   #+end_src
+** Customizing articles
+   Let's define default ways to customize articles based on the [[info:gnus#Customizing%20Articles][manual]].
+   #+begin_src emacs-lisp :tangle yes
+(setq gnus-treat-date 'head
+      gnus-treat-hide-citation-maybe t
+      gnus-treat-strip-cr t
+      gnus-treat-strip-leading-blank-lines t
+      gnus-treat-strip-multiple-blank-lines t
+      gnus-treat-strip-trailing-blank-lines t
+      gnus-treat-unsplit-urls t)
+   #+end_src
+** Misc Article
+   By default, I prefer to have an article buffer per group instead of a
+   single article buffer shared for all groups.
+   #+begin_src emacs-lisp :tangle yes
+(setq gnus-single-article-buffer nil)
+   #+end_src
+   Let's also turn off automatic image rendering.
+   #+begin_src emacs-lisp :tangle yes
+(setq gnus-inhibit-images t)
+   #+end_src
+* Composing Messages
+** Mail and Post
+   We begin by letting gnus know that any group starting with "list", is
+   really a mailing list.
+   #+begin_src emacs-lisp :tangle yes
+(setq gnus-mailing-list-groups "\\`list\\.")
+   #+end_src
+   Next, we ask gnus to spell check our emails and to change the
+   active dictionary accordingly.
+   #+begin_src emacs-lisp :tangle yes
+(add-hook 'message-send-hook 'ispell-message)
+
+(defun jr/gnus-select-dispatch-dictionary-on-group ()
+  "Run `ispell-change-dictionary' with a dictionary appropriate for the group."
+  (cond
+   ((string-match
+     "^list\\.es\\." (gnus-group-real-name gnus-newsgroup-name))
+    (ispell-change-dictionary "spanish"))
+   ((string-match
+     "^list\\.ru\\." (gnus-group-real-name gnus-newsgroup-name))
+    (ispell-change-dictionary "russian"))
+   ((string-match
+     "^list\\.fr\\." (gnus-group-real-name gnus-newsgroup-name))
+    (ispell-change-dictionary "francais"))
+   (t
+    (ispell-change-dictionary "english"))))
+
+(add-hook 'gnus-select-group-hook 'jr/gnus-select-dispatch-dictionary-on-group)
+   #+end_src
+
+   Finally, we set up a binding for quoted wide replies.
+   #+begin_src emacs-lisp :tangle yes
+(define-key gnus-summary-mode-map "F" 'gnus-summary-wide-reply-with-original)
+(define-key gnus-article-mode-map "F" 'gnus-article-wide-reply-with-original)
+   #+end_src
+** Archived Messages
+   Let's have all sent messages go to the Sent folder and to another
+   archived Sent folder based on year and month. Further, let's
+   automatically mark these as read.
+   #+begin_src emacs-lisp :tangle yes
+(setq gnus-message-archive-group '((list "nnimap+local:Sent" (format-time-string "sent.%Y-%m")))
+      gnus-gcc-mark-as-read t)
+   #+end_src
+** Posting styles
+   [[info:gnus#Posting%20Styles][Posting styles]] allows you to configure different variables/settings
+   based on the groups one posts to. Let's add our own settings here for
+   consistency.
+
+   The following sets up a default signature from the file
+   "~/.signature", if it exists. Then, it sets the address and
+   smtp-method based on address the _original_ article was sent to.
+   Please note that these require corresponding settings on your
+   authinfo.gpg or equivalent.
+   #+begin_src emacs-lisp :tangle yes
+(setq gnus-posting-styles
+      '((".*"
+         (signature user-full-name))
+        ((file-exists-p "~/.signature")
+         (signature-file "~/.signature"))
+        ((header "to" "kubb18@gmail.com")
+         (address "kubb18@gmail.com")
+         ("X-Message-SMTP-Method" "smtp smtp.gmail.com 465"))
+        ((header "to" "jeko2000@yandex.com")
+         ("X-Message-SMTP-Method" "smtp smtp.yandex.ru 465")
+         (address "jeko2000@yandex.com"))
+        ((header "to" "kubb18@me.com")
+         ("X-Message-SMTP-Method" "smtp.mail.me.com")
+         (address "kubb18@me.com"))
+        ((header "to" "kubb18@icloud.com")
+         ("X-Message-SMTP-Method" "smtp.mail.me.com")
+         (address "kubb18@icloud.com"))))
+   #+end_src
+** Signing and encrypting
+   Often times, I get messages signed through PGP or similar. Let's have
+   gnus sign these messages accordingly.
+   #+begin_src emacs-lisp :tangle yes
+(setq gnus-message-replysign t)
+   #+end_src
+* Select Methods
+  I use offlineimap to download all my mail down to my local machine.
+  These then get queued up in a dovecot server running locally. Finally,
+  I have gnus connect to the dovecot server as follows:
+  #+begin_src emacs-lisp :tangle yes
+(setq gnus-select-method
+      '(nnimap "local"
+               (nnimap-stream plain)
+               (nnimap-address "localhost")))
+  #+end_src
+** Expiring Mail
+   Let's ask gnus to make the default expiry wait 30 days instead of the
+   default 7.
+   #+begin_src emacs-lisp :tangle yes
+(setq nnmail-expiry-wait 30)
+   #+end_src
+* Scoring
+** TODO Read up on gnus-scoring
+   :PROPERTIES:
+   :Effort:   4:00
+   :END:
+   [[info:gnus#Scoring][info:gnus#Scoring]]
+* Various
+** Interactive
+   There is no need for gnus to warn us of dangerous actions. We can
+   already wield the power of the rm command.
+   #+begin_src emacs-lisp :tangle yes
+(setq gnus-novice-user nil)
+   #+end_src
+
+   Similarly, lets ensure gnus that when we exit, we really meant to and
+   there is no need to confirm.
+   #+begin_src emacs-lisp :tangle yes
+(setq gnus-interactive-exit 'quiet)
+   #+end_src
+** Window Layout
+   Gnus gives us power of its window configuration. Let's exercise that
+   power somewhat.
+   #+begin_src emacs-lisp :tangle yes
+(gnus-add-configuration
+ '(article
+   (horizontal 1.0
+               (vertical 40 (group 1.0))
+               (vertical 1.0
+                         (summary 0.16 point)
+                         (article 1.0)))))
+
+(gnus-add-configuration
+ '(summary
+   (horizontal 1.0
+               (vertical 40 (group 1.0))
+               (vertical 1.0 (summary 1.0 point)))))
+   #+end_src
+* References
+** Group Line Specs                                                   :NOTES:
+   Here’s a list of all available format characters:
+
+   ‘M’
+   An asterisk if the group only has marked articles.
+
+   ‘S’
+   Whether the group is subscribed.
+
+   ‘L’
+   Level of subscribedness.
+
+   ‘N’
+   Number of unread articles.
+
+   ‘I’
+   Number of dormant articles.
+
+   ‘T’
+   Number of ticked articles.
+
+   ‘R’
+   Number of read articles.
+
+   ‘U’
+   Number of unseen articles.
+
+   ‘t’
+   Estimated total number of articles.  (This is really MAX-NUMBER
+   minus MIN-NUMBER plus 1.)
+
+   Gnus uses this estimation because the NNTP protocol provides
+   efficient access to MAX-NUMBER and MIN-NUMBER but getting the true
+   unread message count is not possible efficiently.  For hysterical
+   raisins, even the mail back ends, where the true number of unread
+   messages might be available efficiently, use the same limited
+   interface.  To remove this restriction from Gnus means that the
+   back end interface has to be changed, which is not an easy job.
+
+   The nnml backend (*note Mail Spool::) has a feature called “group
+   compaction” which circumvents this deficiency: the idea is to
+   renumber all articles from 1, removing all gaps between numbers,
+   hence getting a correct total count.  Other backends may support
+   this in the future.  In order to keep your total article count
+   relatively up to date, you might want to compact your groups (or
+   even directly your server) from time to time.  *Note Misc Group
+   Stuff::, *Note Server Commands::.
+
+   ‘y’
+   Number of unread, unticked, non-dormant articles.
+
+   ‘i’
+   Number of ticked and dormant articles.
+
+   ‘g’
+   Full group name.
+
+   ‘G’
+   Group name.
+
+   ‘C’
+   Group comment (*note Group Parameters::) or group name if there is
+   no comment element in the group parameters.
+
+   ‘D’
+   Newsgroup description.  You need to read the group descriptions
+   before these will appear, and to do that, you either have to set
+   ‘gnus-read-active-file’ or use the group buffer ‘M-d’ command.
+
+   ‘o’
+   ‘m’ if moderated.
+
+   ‘O’
+   ‘(m)’ if moderated.
+
+   ‘s’
+   Select method.
+
+   ‘B’
+   If the summary buffer for the group is open or not.
+
+   ‘n’
+   Select from where.
+
+   ‘z’
+   A string that looks like ‘<%s:%n>’ if a foreign select method is
+   used.
+
+   ‘P’
+   Indentation based on the level of the topic (*note Group Topics::).
+
+   ‘c’
+   Short (collapsed) group name.  The ‘gnus-group-uncollapsed-levels’
+   variable says how many levels to leave at the end of the group
+   name.  The default is 1—this will mean that group names like
+   ‘gnu.emacs.gnus’ will be shortened to ‘g.e.gnus’.
+
+   ‘m’
+   ‘%’ (‘gnus-new-mail-mark’) if there has arrived new mail to the
+   group lately.
+
+   ‘p’
+   ‘#’ (‘gnus-process-mark’) if the group is process marked.
+
+   ‘d’
+   A string that says when you last read the group (*note Group
+   Timestamp::).
+
+   ‘F’
+   The disk space used by the articles fetched by both the cache and
+   agent.  The value is automatically scaled to bytes(B),
+   kilobytes(K), megabytes(M), or gigabytes(G) to minimize the column
+   width.  A format of %7F is sufficient for a fixed-width column.
+
+   ‘u’
+   User defined specifier.  The next character in the format string
+   should be a letter.  Gnus will call the function
+   ‘gnus-user-format-function-’‘X’, where ‘X’ is the letter following
+   ‘%u’.  The function will be passed a single dummy parameter as
+   argument.  The function should return a string, which will be
+   inserted into the buffer just like information from any other
+   specifier.
+
+   All the “number-of” specs will be filled with an asterisk (‘*’) if no
+   info is available—for instance, if it is a non-activated foreign group,
+   or a bogus native group.
+** Subscription Commands
+
+   2.4 Subscription Commands
+   =========================
+
+   The following commands allow for managing your subscriptions in the
+   Group buffer.  If you want to subscribe to many groups, it’s probably
+   more convenient to go to the *note Server Buffer::, and choose the
+   server there using ‘<RET>’ or ‘<SPC>’.  Then you’ll have the commands
+   listed in *note Browse Foreign Server:: at hand.
+
+   ‘S t’
+   ‘u’
+   Toggle subscription to the current group
+   (‘gnus-group-unsubscribe-current-group’).
+
+   ‘S s’
+   ‘U’
+   Prompt for a group to subscribe, and then subscribe it.  If it was
+   subscribed already, unsubscribe it instead
+   (‘gnus-group-unsubscribe-group’).
+
+   ‘S k’
+   ‘C-k’
+   Kill the current group (‘gnus-group-kill-group’).
+
+   ‘S y’
+   ‘C-y’
+   Yank the last killed group (‘gnus-group-yank-group’).
+
+   ‘C-x C-t’
+   Transpose two groups (‘gnus-group-transpose-groups’).  This isn’t
+   really a subscription command, but you can use it instead of a
+   kill-and-yank sequence sometimes.
+
+   ‘S w’
+   ‘C-w’
+   Kill all groups in the region (‘gnus-group-kill-region’).
+
+   ‘S z’
+   Kill all zombie groups (‘gnus-group-kill-all-zombies’).
+
+   ‘S C-k’
+   Kill all groups on a certain level (‘gnus-group-kill-level’).
+   These groups can’t be yanked back after killing, so this command
+   should be used with some caution.  The only time where this command
+   comes in really handy is when you have a ‘.newsrc’ with lots of
+   unsubscribed groups that you want to get rid off.  ‘S C-k’ on level
+   7 will kill off all unsubscribed groups that do not have message
+   numbers in the ‘.newsrc’ file.
+** Group parameters
+
+   2.10 Group Parameters
+   =====================
+
+   The group parameters store information local to a particular group.
+
+   Use the ‘G p’ or the ‘G c’ command to edit group parameters of a
+   group.  (‘G p’ presents you with a Lisp-based interface, ‘G c’ presents
+   you with a Customize-like interface.  The latter helps avoid silly Lisp
+   errors.)  You might also be interested in reading about topic parameters
+   (*note Topic Parameters::).  Additionally, you can set group parameters
+   via the ‘gnus-parameters’ variable, see below.
+
+   Here’s an example group parameter list:
+
+   ((to-address . "ding@gnus.org")
+   (auto-expire . t))
+
+   We see that each element consists of a “dotted pair”—the thing before
+   the dot is the key, while the thing after the dot is the value.  All the
+   parameters have this form _except_ local variable specs, which are not
+   dotted pairs, but proper lists.
+
+   Some parameters have correspondent customizable variables, each of
+   which is an alist of regexps and values.
+
+   The following group parameters can be used:
+
+   ‘to-address’
+   Address used by when doing followups and new posts.
+
+   (to-address . "some@where.com")
+
+   This is primarily useful in mail groups that represent closed
+   mailing lists—mailing lists where it’s expected that everybody that
+   writes to the mailing list is subscribed to it.  Since using this
+   parameter ensures that the mail only goes to the mailing list
+   itself, it means that members won’t receive two copies of your
+   followups.
+
+   Using ‘to-address’ will actually work whether the group is foreign
+   or not.  Let’s say there’s a group on the server that is called
+   ‘fa.4ad-l’.  This is a real newsgroup, but the server has gotten
+   the articles from a mail-to-news gateway.  Posting directly to this
+   group is therefore impossible—you have to send mail to the mailing
+   list address instead.
+
+   See also ‘gnus-parameter-to-address-alist’.
+
+   ‘to-list’
+   Address used when doing ‘a’ in that group.
+
+   (to-list . "some@where.com")
+
+   It is totally ignored when doing a followup—except that if it is
+   present in a news group, you’ll get mail group semantics when doing
+   ‘f’.
+
+   If you do an ‘a’ command in a mail group and you have neither a
+   ‘to-list’ group parameter nor a ‘to-address’ group parameter, then
+   a ‘to-list’ group parameter will be added automatically upon
+   sending the message if ‘gnus-add-to-list’ is set to ‘t’.
+
+   If this variable is set, ‘gnus-mailing-list-mode’ is turned on when
+   entering summary buffer.
+
+   See also ‘gnus-parameter-to-list-alist’.
+
+   ‘subscribed’
+   If this parameter is set to ‘t’, Gnus will consider the to-address
+   and to-list parameters for this group as addresses of mailing lists
+   you are subscribed to.  Giving Gnus this information is (only) a
+   first step in getting it to generate correct Mail-Followup-To
+   headers for your posts to these lists.  The second step is to put
+   the following in your ‘.gnus.el’
+
+   (setq message-subscribed-address-functions
+   '(gnus-find-subscribed-addresses))
+
+   *Note Mailing Lists: (message)Mailing Lists, for a complete
+   treatment of available MFT support.
+
+   ‘visible’
+   If the group parameter list has the element ‘(visible . t)’, that
+   group will always be visible in the Group buffer, regardless of
+   whether it has any unread articles.
+
+   This parameter cannot be set via ‘gnus-parameters’.  See
+   ‘gnus-permanently-visible-groups’ as an alternative.
+
+   ‘broken-reply-to’
+   Elements like ‘(broken-reply-to . t)’ signals that ‘Reply-To’
+   headers in this group are to be ignored, and for the header to be
+   hidden if ‘reply-to’ is part of ‘gnus-boring-article-headers’.
+   This can be useful if you’re reading a mailing list group where the
+   listserv has inserted ‘Reply-To’ headers that point back to the
+   listserv itself.  That is broken behavior.  So there!
+
+   ‘to-group’
+   Elements like ‘(to-group . "some.group.name")’ means that all posts
+   in that group will be sent to ‘some.group.name’.
+
+   ‘newsgroup’
+   If you have ‘(newsgroup . t)’ in the group parameter list, Gnus
+   will treat all responses as if they were responses to news
+   articles.  This can be useful if you have a mail group that’s
+   really a mirror of a news group.
+
+   ‘gcc-self’
+   If ‘(gcc-self . t)’ is present in the group parameter list, newly
+   composed messages will be ‘gcc’d to the current group.  If
+   ‘(gcc-self . none)’ is present, no ‘Gcc:’ header will be generated,
+   if ‘(gcc-self . "group")’ is present, this string will be inserted
+   literally as a ‘Gcc:’ header.  It should be a group name.  The
+   ‘gcc-self’ value may also be a list of strings and ‘t’, e.g.,
+   ‘(gcc-self "group1" "group2" t)’ means to ‘gcc’ the newly composed
+   message into the groups ‘"group1"’ and ‘"group2"’, and into the
+   current group.  The ‘gcc-self’ parameter takes precedence over any
+   default ‘Gcc’ rules as described later (*note Archived Messages::),
+   with the exception for messages to resend.
+
+   *Caveat*: Adding ‘(gcc-self . t)’ to the parameter list of ‘nntp’
+   groups (or the like) isn’t valid.  An ‘nntp’ server doesn’t accept
+   articles.
+
+   ‘auto-expire’
+   If the group parameter has an element that looks like ‘(auto-expire
+   . t)’, all articles read will be marked as expirable.  For an
+   alternative approach, *note Expiring Mail::.
+
+   See also ‘gnus-auto-expirable-newsgroups’.
+
+   ‘total-expire’
+   If the group parameter has an element that looks like
+   ‘(total-expire . t)’, all read articles will be put through the
+   expiry process, even if they are not marked as expirable.  Use with
+   caution.  Unread, ticked and dormant articles are not eligible for
+   expiry.
+
+   See also ‘gnus-total-expirable-newsgroups’.
+
+   ‘expiry-wait’
+   If the group parameter has an element that looks like ‘(expiry-wait
+   . 10)’, this value will override any ‘nnmail-expiry-wait’ and
+   ‘nnmail-expiry-wait-function’ (*note Expiring Mail::) when expiring
+   expirable messages.  The value can either be a number of days (not
+   necessarily an integer) or the symbols ‘never’ or ‘immediate’.
+
+   ‘expiry-target’
+   Where expired messages end up.  This parameter overrides
+   ‘nnmail-expiry-target’.
+
+   ‘score-file’
+   Elements that look like ‘(score-file . "file")’ will make ‘file’
+   into the current score file for the group in question.  All
+   interactive score entries will be put into this file.
+
+   ‘adapt-file’
+   Elements that look like ‘(adapt-file . "file")’ will make ‘file’
+   into the current adaptive file for the group in question.  All
+   adaptive score entries will be put into this file.
+
+   ‘admin-address’
+   When unsubscribing from a mailing list you should never send the
+   unsubscription notice to the mailing list itself.  Instead, you’d
+   send messages to the administrative address.  This parameter allows
+   you to put the admin address somewhere convenient.
+
+   ‘display’
+   Elements that look like ‘(display . MODE)’ say which articles to
+   display on entering the group.  Valid values are:
+
+   ‘all’
+   Display all articles, both read and unread.
+
+   ‘an integer’
+   Display the last INTEGER articles in the group.  This is the
+   same as entering the group with ‘C-u INTEGER’.
+
+   ‘default’
+   Display the default visible articles, which normally includes
+   unread and ticked articles.
+
+   ‘an array’
+   Display articles that satisfy a predicate.
+
+   Here are some examples:
+
+   ‘[unread]’
+   Display only unread articles.
+
+   ‘[not expire]’
+   Display everything except expirable articles.
+
+   ‘[and (not reply) (not expire)]’
+   Display everything except expirable and articles you’ve
+   already responded to.
+
+   The available operators are ‘not’, ‘and’ and ‘or’.  Predicates
+   include ‘tick’, ‘unsend’, ‘undownload’, ‘unread’, ‘dormant’,
+   ‘expire’, ‘reply’, ‘killed’, ‘bookmark’, ‘score’, ‘save’,
+   ‘cache’, ‘forward’, and ‘unseen’.
+
+   The ‘display’ parameter works by limiting the summary buffer to the
+   subset specified.  You can pop the limit by using the ‘/ w’ command
+   (*note Limiting::).
+
+   ‘comment’
+   Elements that look like ‘(comment . "This is a comment")’ are
+   arbitrary comments on the group.  You can display comments in the
+   group line (*note Group Line Specification::).
+
+   ‘charset’
+   Elements that look like ‘(charset . iso-8859-1)’ will make
+   ‘iso-8859-1’ the default charset; that is, the charset that will be
+   used for all articles that do not specify a charset.
+
+   See also ‘gnus-group-charset-alist’.
+
+   ‘ignored-charsets’
+   Elements that look like ‘(ignored-charsets x-unknown iso-8859-1)’
+   will make ‘iso-8859-1’ and ‘x-unknown’ ignored; that is, the
+   default charset will be used for decoding articles.
+
+   See also ‘gnus-group-ignored-charsets-alist’.
+
+   ‘posting-style’
+   You can store additional posting style information for this group
+   here (*note Posting Styles::).  The format is that of an entry in
+   the ‘gnus-posting-styles’ alist, except that there’s no regexp
+   matching the group name (of course).  Style elements in this group
+   parameter will take precedence over the ones found in
+   ‘gnus-posting-styles’.
+
+   For instance, if you want a funky name and signature in this group
+   only, instead of hacking ‘gnus-posting-styles’, you could put
+   something like this in the group parameters:
+
+   (posting-style
+   (name "Funky Name")
+   ("X-Message-SMTP-Method" "smtp smtp.example.org 587")
+   ("X-My-Header" "Funky Value")
+   (signature "Funky Signature"))
+
+   If you’re using topics to organize your group buffer (*note Group
+   Topics::), note that posting styles can also be set in the topics
+   parameters.  Posting styles in topic parameters apply to all groups
+   in this topic.  More precisely, the posting-style settings for a
+   group result from the hierarchical merging of all posting-style
+   entries in the parameters of this group and all the topics it
+   belongs to.
+
+   ‘post-method’
+   If it is set, the value is used as the method for posting message
+   instead of ‘gnus-post-method’.
+
+   ‘mail-source’
+   If it is set, and the setting of ‘mail-sources’ includes a ‘group’
+   mail source (*note Mail Sources::), the value is a mail source for
+   this group.
+
+   ‘banner’
+   An item like ‘(banner . REGEXP)’ causes any part of an article that
+   matches the regular expression REGEXP to be stripped.  Instead of
+   REGEXP, you can also use the symbol ‘signature’ which strips the
+   last signature or any of the elements of the alist
+   ‘gnus-article-banner-alist’.
+
+   ‘sieve’
+   This parameter contains a Sieve test that should match incoming
+   mail that should be placed in this group.  From this group
+   parameter, a Sieve ‘IF’ control structure is generated, having the
+   test as the condition and ‘fileinto "group.name";’ as the body.
+
+   For example, if the ‘INBOX.list.sieve’ group has the ‘(sieve
+   address "sender" "sieve-admin@extundo.com")’ group parameter, when
+   translating the group parameter into a Sieve script (*note Sieve
+   Commands::) the following Sieve code is generated:
+
+   if address "sender" "sieve-admin@extundo.com" {
+   fileinto "INBOX.list.sieve";
+   }
+
+   To generate tests for multiple email-addresses use a group
+   parameter like ‘(sieve address "sender" ("name@one.org"
+   else@two.org"))’.  When generating a sieve script (*note Sieve
+   Commands::) Sieve code like the following is generated:
+
+   if address "sender" ["name@one.org", "else@two.org"] {
+   fileinto "INBOX.list.sieve";
+   }
+
+   You can also use regexp expansions in the rules:
+
+   (sieve header :regex "list-id" "<c++std-\\1.accu.org>")
+
+   See *note Sieve Commands:: for commands and variables that might be
+   of interest in relation to the sieve parameter.
+
+   The Sieve language is described in RFC 3028.  *Note Emacs Sieve:
+   (sieve)Top.
+
+   ‘match-list’
+   If this parameter is set to ‘t’ and ‘nnmail-split-method’ is set to
+   ‘gnus-group-split’, Gnus will match ‘to-address’, ‘to-list’,
+   ‘extra-aliases’ and ‘split-regexp’ against the ‘list’ split
+   abbreviation.  The split regexp is modified to match either a ‘@’
+   or a dot ‘.’ in mail addresses to conform to RFC2919 ‘List-ID’.
+
+   See ‘nnmail-split-abbrev-alist’ for the regular expression matching
+   mailing-list headers.
+
+   See *note Group Mail Splitting:: to automatically split on group
+   parameters.
+
+   ‘(agent parameters)’
+   If the agent has been enabled, you can set any of its parameters to
+   control the behavior of the agent in individual groups.  See Agent
+   Parameters in *note Category Syntax::.  Most users will choose to
+   set agent parameters in either an agent category or group topic to
+   minimize the configuration effort.
+
+   ‘(VARIABLE FORM)’
+   You can use the group parameters to set variables local to the
+   group you are entering.  If you want to turn threading off in
+   ‘news.answers’, you could put ‘(gnus-show-threads nil)’ in the
+   group parameters of that group.  ‘gnus-show-threads’ will be made
+   into a local variable in the summary buffer you enter, and the form
+   ‘nil’ will be ‘eval’ed there.
+
+   Note that this feature sets the variable locally to the summary
+   buffer if and only if VARIABLE has been bound as a variable.
+   Otherwise, only evaluating the form will take place.  So, you may
+   want to bind the variable in advance using ‘defvar’ or other if the
+   result of the form needs to be set to it.
+
+   But some variables are evaluated in the article buffer, or in the
+   message buffer (of a reply or followup or otherwise newly created
+   message).  As a workaround, it might help to add the variable in
+   question to ‘gnus-newsgroup-variables’.  *Note Various Summary
+   Stuff::.  So if you want to set ‘message-from-style’ via the group
+   parameters, then you may need the following statement elsewhere in
+   your ‘~/.gnus.el’ file:
+
+   (add-to-list 'gnus-newsgroup-variables 'message-from-style)
+
+   A use for this feature is to remove a mailing list identifier tag
+   in the subject fields of articles.  E.g., if the news group
+
+   nntp+news.gnus.org:gmane.text.docbook.apps
+
+   has the tag ‘DOC-BOOK-APPS:’ in the subject of all articles, this
+   tag can be removed from the article subjects in the summary buffer
+   for the group by putting ‘(gnus-list-identifiers "DOCBOOK-APPS:")’
+   into the group parameters for the group.
+
+   This can also be used as a group-specific hook function.  If you
+   want to hear a beep when you enter a group, you could put something
+   like ‘(dummy-variable (ding))’ in the parameters of that group.  If
+   ‘dummy-variable’ has been bound (see above), it will be set to the
+   (meaningless) result of the ‘(ding)’ form.
+
+   Alternatively, since the VARIABLE becomes local to the group, this
+   pattern can be used to temporarily change a hook.  For example, if
+   the following is added to a group parameter
+
+   (gnus-summary-prepared-hook
+   (lambda nil (local-set-key "d" (local-key-binding "n"))))
+
+   when the group is entered, the ’d’ key will not mark the article as
+   expired.
+
+   Group parameters can be set via the ‘gnus-parameters’ variable too.
+   But some variables, such as ‘visible’, have no effect (For this case see
+   ‘gnus-permanently-visible-groups’ as an alternative.).  For example:
+
+   (setq gnus-parameters
+   '(("mail\\..*"
+   (gnus-show-threads nil)
+   (gnus-use-scoring nil)
+   (gnus-summary-line-format
+   "%U%R%z%I%(%[%d:%ub%-23,23f%]%) %s\n")
+   (gcc-self . t)
+   (display . all))
+
+   ("^nnimap:\\(foo.bar\\)$"
+   (to-group . "\\1"))
+
+   ("mail\\.me"
+   (gnus-use-scoring t))
+
+   ("list\\..*"
+   (total-expire . t)
+   (broken-reply-to . t))))
+
+   All clauses that matches the group name will be used, but the last
+   setting “wins”.  So if you have two clauses that both match the group
+   name, and both set, say ‘display’, the last setting will override the
+   first.
+
+   Parameters that are strings will be subjected to regexp substitution,
+   as the ‘to-group’ example shows.
+
+   By default, whether comparing the group name and one of those regexps
+   specified in ‘gnus-parameters’ is done in a case-sensitive manner or a
+   case-insensitive manner depends on the value of ‘case-fold-search’ at
+   the time when the comparison is done.  The value of ‘case-fold-search’
+   is typically ‘t’; it means, for example, the element ‘("INBOX\\.FOO"
+   (total-expire . t))’ might be applied to both the ‘INBOX.FOO’ group and
+   the ‘INBOX.foo’ group.  If you want to make those regexps always
+   case-sensitive, set the value of the ‘gnus-parameters-case-fold-search’
+   variable to ‘nil’.  Otherwise, set it to ‘t’ if you want to compare them
+   always in a case-insensitive manner.
+
+   You can define different sorting to different groups via
+   ‘gnus-parameters’.  Here is an example to sort an NNTP group by reverse
+   date to see the latest news at the top and an RSS group by subject.  In
+   this example, the first group is the Debian daily news group
+   ‘gmane.linux.debian.user.news’ from news.gmane.org.  The RSS group
+   corresponds to the Debian weekly news RSS feed
+   <http://packages.debian.org/unstable/newpkg_main.en.rdf>, *Note RSS::.
+
+   (setq
+   gnus-parameters
+   '(("nntp.*gmane\\.debian\\.user\\.news"
+   (gnus-show-threads nil)
+   (gnus-article-sort-functions '((not gnus-article-sort-by-date)))
+   (gnus-use-adaptive-scoring nil)
+   (gnus-use-scoring nil))
+   ("nnrss.*debian"
+   (gnus-show-threads nil)
+   (gnus-article-sort-functions 'gnus-article-sort-by-subject)
+   (gnus-use-adaptive-scoring nil)
+   (gnus-use-scoring t)
+   (gnus-score-find-score-files-function 'gnus-score-find-single)
+   (gnus-summary-line-format "%U%R%z%d %I%(%[ %s %]%)\n"))))
+** Summary Line Specs
+   The following format specification characters and extended format
+   specification(s) are understood:
+
+   ‘N’
+   Article number.
+   ‘S’
+   Subject string.  List identifiers stripped,
+   ‘gnus-list-identifiers’.  *Note Article Hiding::.
+   ‘s’
+   Subject if the article is the root of the thread or the previous
+   article had a different subject, ‘gnus-summary-same-subject’
+   otherwise.  (‘gnus-summary-same-subject’ defaults to ‘""’.)
+   ‘F’
+   Full ‘From’ header.
+   ‘n’
+   The name (from the ‘From’ header).
+   ‘f’
+   The name, ‘To’ header or the ‘Newsgroups’ header (*note To From
+   Newsgroups::).
+   ‘a’
+   The name (from the ‘From’ header).  This differs from the ‘n’ spec
+   in that it uses the function designated by the
+   ‘gnus-extract-address-components’ variable, which is slower, but
+   may be more thorough.
+   ‘A’
+   The address (from the ‘From’ header).  This works the same way as
+   the ‘a’ spec.
+   ‘L’
+   Number of lines in the article.
+   ‘c’
+   Number of characters in the article.  This specifier is not
+   supported in some methods (like nnfolder).
+   ‘k’
+   Pretty-printed version of the number of characters in the article;
+   for example, ‘1.2k’ or ‘0.4M’.
+   ‘I’
+   Indentation based on thread level (*note Customizing Threading::).
+   ‘B’
+   A complex trn-style thread tree, showing response-connecting trace
+   lines.  A thread could be drawn like this:
+
+   >
+   +->
+   | +->
+   | | \->
+   | |   \->
+   | \->
+   +->
+   \->
+
+   You can customize the appearance with the following options.  Note
+   that it is possible to make the thread display look really neat by
+   replacing the default ASCII characters with graphic line-drawing
+   glyphs.
+   ‘gnus-sum-thread-tree-root’
+   Used for the root of a thread.  If ‘nil’, use subject instead.
+   The default is ‘> ’.
+
+   ‘gnus-sum-thread-tree-false-root’
+   Used for the false root of a thread (*note Loose Threads::).
+   If ‘nil’, use subject instead.  The default is ‘> ’.
+
+   ‘gnus-sum-thread-tree-single-indent’
+   Used for a thread with just one message.  If ‘nil’, use
+   subject instead.  The default is ‘’.
+
+   ‘gnus-sum-thread-tree-vertical’
+   Used for drawing a vertical line.  The default is ‘| ’.
+
+   ‘gnus-sum-thread-tree-indent’
+   Used for indenting.  The default is ‘ ’.
+
+   ‘gnus-sum-thread-tree-leaf-with-other’
+   Used for a leaf with brothers.  The default is ‘+-> ’.
+
+   ‘gnus-sum-thread-tree-single-leaf’
+   Used for a leaf without brothers.  The default is ‘\-> ’
+
+   ‘T’
+   Nothing if the article is a root and lots of spaces if it isn’t (it
+   pushes everything after it off the screen).
+   ‘[’
+   Opening bracket, which is normally ‘[’, but can also be ‘<’ for
+   adopted articles (*note Customizing Threading::).
+   ‘]’
+   Closing bracket, which is normally ‘]’, but can also be ‘>’ for
+   adopted articles.
+   ‘>’
+   One space for each thread level.
+   ‘<’
+   Twenty minus thread level spaces.
+   ‘U’
+   Unread.  *Note Read Articles::.
+
+   ‘R’
+   This misleadingly named specifier is the “secondary mark”.  This
+   mark will say whether the article has been replied to, has been
+   cached, or has been saved.  *Note Other Marks::.
+
+   ‘i’
+   Score as a number (*note Scoring::).
+   ‘z’
+   Zcore, ‘+’ if above the default level and ‘-’ if below the default
+   level.  If the difference between ‘gnus-summary-default-score’ and
+   the score is less than ‘gnus-summary-zcore-fuzz’, this spec will
+   not be used.
+   ‘V’
+   Total thread score.
+   ‘x’
+   ‘Xref’.
+   ‘D’
+   ‘Date’.
+   ‘d’
+   The ‘Date’ in ‘DD-MMM’ format.
+   ‘o’
+   The ‘Date’ in YYYYMMDD‘T’HHMMSS format.
+   ‘M’
+   ‘Message-ID’.
+   ‘r’
+   ‘References’.
+   ‘t’
+   Number of articles in the current sub-thread.  Using this spec will
+   slow down summary buffer generation somewhat.
+   ‘e’
+   An ‘=’ (‘gnus-not-empty-thread-mark’) will be displayed if the
+   article has any children.
+   ‘P’
+   The line number.
+   ‘O’
+   Download mark.
+   ‘*’
+   Desired cursor position (instead of after first colon).
+   ‘&user-date;’
+   Age sensitive date format.  Various date format is defined in
+   ‘gnus-user-date-format-alist’.
+   ‘u’
+   User defined specifier.  The next character in the format string
+   should be a letter.  Gnus will call the function
+   ‘gnus-user-format-function-X’, where X is the letter following
+   ‘%u’.  The function will be passed the current header as argument.
+   The function should return a string, which will be inserted into
+   the summary just like information from any other summary specifier.
+
+   Text between ‘%(’ and ‘%)’ will be highlighted with ‘gnus-mouse-face’
+   when the mouse point is placed inside the area.  There can only be one
+   such area.
+
+   The ‘%U’ (status), ‘%R’ (replied) and ‘%z’ (zcore) specs have to be
+   handled with care.  For reasons of efficiency, Gnus will compute what
+   column these characters will end up in, and “hard-code” that.  This
+   means that it is invalid to have these specs after a variable-length
+   spec.  Well, you might not be arrested, but your summary buffer will
+   look strange, which is bad enough.
+
+   The smart choice is to have these specs as far to the left as
+   possible.  (Isn’t that the case with everything, though?  But I
+   digress.)
+
+   This restriction may disappear in later versions of Gnus.
