@@ -9,8 +9,10 @@
 (setq user-mail-address "jeko2000@yandex.com"
       user-full-name "Johnny Ruiz")
   #+end_src
+
 ** Finding news
    Please see [[*Select Methods][Select Methods]].
+
 ** New Groups
    As I use gnus mostly for mail, I don't need gnus to check for new
    newsgroups automatically. I can do it manually in case I add new
@@ -58,6 +60,7 @@
    #+begin_src emacs-lisp :tangle yes
 (setq gnus-check-bogus-newsgroups nil)
    #+end_src
+
 * Group Buffer
 ** Group Buffer Format
 *** Group Line Specification
@@ -67,6 +70,7 @@
 (setq gnus-group-line-format "%S%p%P%M%5y: %(%B%g%B%)\n")
     #+end_src
     As a reference, here's the list of all [[*Group Line Specs][format characters]].
+
 *** Group Highlighting
     I would like to have groups with large numbers of unread messages to
     be highlighted differently. Let's set that up
@@ -91,6 +95,7 @@
     #+begin_src emacs-lisp :tangle yes
 (add-hook 'gnus-group-mode-hook 'hl-line-mode)
     #+end_src
+
 ** Selecting a group
    The connection between gnus and my dovecot server is very fast. Let's
    tell gnus that a large newsgroup for us has at least 5000 articles
@@ -261,6 +266,7 @@
 (define-key gnus-group-mode-map "vr"
   'jr/gnus-goto-references-group)
    #+end_src
+
 * Summary Buffer
 ** Summary Buffer Format
 *** Summary Buffer Lines
@@ -315,6 +321,7 @@
 (push '((eq mark gnus-expirable-mark) . jr/gnus-summary-expirable-face)
       gnus-summary-highlight)
     #+end_src
+
 ** Delayed Articles
    It's useful to be able to delay sending an email until a later time.
    Let's enable this feature.
@@ -341,6 +348,7 @@
    #+begin_src emacs-lisp :tangle yes
 (setq message-draft-headers (remove 'Date message-draft-headers))
    #+end_src
+
 ** Marking Articles
    The default behavior in gnus is to move the point to the next _unread_
    article after a marking command. I prefer to simply go to the next
@@ -348,6 +356,7 @@
    #+begin_src emacs-lisp :tangle yes
 (setq gnus-summary-goto-unread nil)
    #+end_src
+
 ** Threading
    When gnus is unable to find the root of a thread, let's have it make
    the first orphaned article the parent.
@@ -370,11 +379,13 @@
    #+begin_src emacs-lisp :tangle yes
 (setq gnus-thread-ignore-subject nil)
    #+end_src
+
 ** Asynchronous Article Fetching
    Per the [[info:gnus#Asynchronous%20Fetching][manual]], let's enable asynchronous article fetching.
    #+begin_src emacs-lisp :tangle yes
 (setq gnus-asynchronous t)
    #+end_src
+
 ** Article caching
    Gnus is able to store ticked or dormant articles locally. This can be
    useful on slow connections of any kind. Let's enable it.
@@ -388,6 +399,7 @@
    #+begin_src emacs-lisp :tangle yes
 (setq gnus-uncacheable-groups "^nnml")
    #+end_src
+
 ** Saving Articles
    There's little need to save articles with my setup, but, let's set the
    required variables to avoid having gnus over-prompting us.
@@ -396,11 +408,13 @@
       gnus-article-save-directory "~/mail/saved/"
       gnus-prompt-before-saving nil)
    #+end_src
+
 ** Article Washing
    Let's ask gnus-w3m to render our HTML emails (since I still get those).
    #+begin_src emacs-lisp :tangle yes
 (setq mm-text-html-renderer 'gnus-w3m)
    #+end_src
+
 ** Article Signature
    The default signature separator (e.g., "^-- $") catches most
    signatures except those from some Outlook email addresses which strip
@@ -408,6 +422,7 @@
    #+begin_src emacs-lisp :tangle yes
 (setq gnus-signature-separator '("^-- $" "^-- *$"))
    #+end_src
+
 ** Various Summary Stuff
    If I request gnus to open a newsgroup with lots of articles, I like to
    have it update the display every 100 lines.
@@ -419,6 +434,7 @@
    #+begin_src emacs-lisp :tangle yes
 (add-hook 'gnus-summary-mode-hook 'hl-line-mode)
    #+end_src
+
 * Article Buffer
 ** Hiding Headers
    Let's set some visible headers as default as well as the order in
@@ -427,6 +443,7 @@
 (setq gnus-visible-headers "^From:\\|^Newsgroups:\\|^Subject:\\|^Date:\\|^Followup-To:\\|^Reply-To:\\|^Organization:\\|^Summary:\\|^Keywords:\\|^To:\\|^[BGF]?Cc:\\|^Posted-To:\\|^Mail-Copies-To:\\|^Mail-Followup-To:\\|^Apparently-To:\\|^Gnus-Warning:\\|^Resent-From:\\|^User-Agent: "
       gnus-sorted-header-list '("^Date:" "^From:" "^Summary:" "^Keywords:" "^Newsgroups:" "^Followup-To:" "^To:" "^Reply-To:" "^Cc:" "^Organization:" "^Subject:" "User-Agent:"))
    #+end_src
+
 ** Customizing articles
    Let's define default ways to customize articles based on the [[info:gnus#Customizing%20Articles][manual]].
    #+begin_src emacs-lisp :tangle yes
@@ -438,6 +455,7 @@
       gnus-treat-strip-trailing-blank-lines t
       gnus-treat-unsplit-urls t)
    #+end_src
+
 ** Misc Article
    By default, I prefer to have an article buffer per group instead of a
    single article buffer shared for all groups.
@@ -448,6 +466,7 @@
    #+begin_src emacs-lisp :tangle yes
 (setq gnus-inhibit-images t)
    #+end_src
+
 * Composing Messages
 ** Mail and Post
    We begin by letting gnus know that any group starting with "list", is
@@ -483,6 +502,7 @@
 (define-key gnus-summary-mode-map "F" 'gnus-summary-wide-reply-with-original)
 (define-key gnus-article-mode-map "F" 'gnus-article-wide-reply-with-original)
    #+end_src
+
 ** Archived Messages
    Let's have all sent messages go to the Sent folder and to another
    archived Sent folder based on year and month. Further, let's
@@ -491,6 +511,7 @@
 (setq gnus-message-archive-group '((list "nnimap+local:Sent" (format-time-string "sent.%Y-%m")))
       gnus-gcc-mark-as-read t)
    #+end_src
+
 ** Posting styles
    [[info:gnus#Posting%20Styles][Posting styles]] allows you to configure different variables/settings
    based on the groups one posts to. Let's add our own settings here for
@@ -520,12 +541,14 @@
          ("X-Message-SMTP-Method" "smtp smtp.yandex.com 465")
          (address "jeko2000@yandex.com"))))
    #+end_src
+
 ** Signing and encrypting
    Often times, I get messages signed through PGP or similar. Let's have
    gnus sign these messages accordingly.
    #+begin_src emacs-lisp :tangle yes
 (setq gnus-message-replysign t)
    #+end_src
+
 * Select Methods
   I use [[http://www.offlineimap.org/][offlineimap]] to download all my mail down to my local machine.
   These then get queued up in a dovecot server running locally. Finally,
@@ -547,18 +570,21 @@
       smtpmail-debug-info t
       smtpmail-debug-verb t)
   #+end_src
+
 ** Expiring Mail
    Let's ask gnus to make the default expiry wait 30 days instead of the
    default 7.
    #+begin_src emacs-lisp :tangle yes
 (setq nnmail-expiry-wait 30)
    #+end_src
+
 * Scoring
 ** TODO Read up on gnus-scoring
    :PROPERTIES:
    :Effort:   4:00
    :END:
    [[info:gnus#Scoring][info:gnus#Scoring]]
+
 * Various
 ** Interactive
    There is no need for gnus to warn us of dangerous actions. We can
@@ -572,6 +598,7 @@
    #+begin_src emacs-lisp :tangle yes
 (setq gnus-interactive-exit 'quiet)
    #+end_src
+
 ** Window Layout
    Gnus gives us power of its window configuration. Let's exercise that
    power somewhat.
@@ -590,6 +617,7 @@
                (vertical 40 (group 1.0))
                (vertical 1.0 (summary 1.0 point)))))
    #+end_src
+
 * References
 ** Group Line Specs
    Here’s a list of all available format characters:
@@ -717,6 +745,7 @@
    All the “number-of” specs will be filled with an asterisk (‘*’) if no
    info is available—for instance, if it is a non-activated foreign group,
    or a bogus native group.
+
 ** Subscription Commands
 
    2.4 Subscription Commands
@@ -767,6 +796,7 @@
    unsubscribed groups that you want to get rid off.  ‘S C-k’ on level
    7 will kill off all unsubscribed groups that do not have message
    numbers in the ‘.newsrc’ file.
+
 ** Group parameters
 
    2.10 Group Parameters
@@ -1204,6 +1234,7 @@
    (gnus-use-scoring t)
    (gnus-score-find-score-files-function 'gnus-score-find-single)
    (gnus-summary-line-format "%U%R%z%d %I%(%[ %s %]%)\n"))))
+
 ** Summary Line Specs
    The following format specification characters and extended format
    specification(s) are understood:

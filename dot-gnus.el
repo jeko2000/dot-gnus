@@ -2,7 +2,7 @@
       user-full-name "Johnny Ruiz")
 
 (setq gnus-check-new-newsgroups nil
-      gnus-save-killed-list     nil)
+      gnus-save-killed-list nil)
 
 (setq gnus-subscribe-newsgroup-method 'gnus-subscribe-alphabetically
       gnus-subscribe-hierarchical-interactive nil)
@@ -215,7 +215,7 @@
 
 (add-hook 'message-send-hook 'ispell-message)
 
-(defun jr/gnus-select-dispatch-dictionary-on-group ()
+(defun jr/message-dispatch-ispell-dictionary-on-group ()
   "Run `ispell-change-dictionary' with a dictionary appropriate for the group."
   (cond
    ((string-match
@@ -230,7 +230,7 @@
    (t
     (ispell-change-dictionary "english"))))
 
-(add-hook 'gnus-select-group-hook 'jr/gnus-select-dispatch-dictionary-on-group)
+(add-hook 'message-mode-hook 'jr/message-dispatch-ispell-dictionary-on-group)
 
 (define-key gnus-summary-mode-map "F" 'gnus-summary-wide-reply-with-original)
 (define-key gnus-article-mode-map "F" 'gnus-article-wide-reply-with-original)
@@ -243,18 +243,18 @@
          (signature user-full-name))
         ((file-exists-p "~/.signature")
          (signature-file "~/.signature"))
-        ((header "to" "kubb18@gmail.com")
-         (address "kubb18@gmail.com")
-         ("X-Message-SMTP-Method" "smtp smtp.gmail.com 465"))
-        ((header "to" "jeko2000@yandex.com")
-         ("X-Message-SMTP-Method" "smtp smtp.yandex.ru 465")
-         (address "jeko2000@yandex.com"))
         ((header "to" "kubb18@me.com")
          ("X-Message-SMTP-Method" "smtp.mail.me.com")
          (address "kubb18@me.com"))
         ((header "to" "kubb18@icloud.com")
          ("X-Message-SMTP-Method" "smtp.mail.me.com")
-         (address "kubb18@icloud.com"))))
+         (address "kubb18@icloud.com"))
+        ((header "to" "kubb18@gmail.com")
+         (address "kubb18@gmail.com")
+         ("X-Message-SMTP-Method" "smtp smtp.gmail.com 465"))
+        ((header "to" "jeko2000@yandex.com")
+         ("X-Message-SMTP-Method" "smtp smtp.yandex.com 465")
+         (address "jeko2000@yandex.com"))))
 
 (setq gnus-message-replysign t)
 
@@ -262,6 +262,17 @@
       '(nnimap "local"
                (nnimap-stream plain)
                (nnimap-address "localhost")))
+
+(require 'smtpmail)
+
+(setq send-mail-function 'smtpmail-send-it
+      message-send-mail-function 'smtpmail-send-it
+      smtpmail-default-smtp-server "smtp.yandex.com"
+      smtpmail-smtp-service 465
+      smtpmail-smtp-server "smtp.yandex.com"
+      smtpmail-stream-type 'ssl
+      smtpmail-debug-info t
+      smtpmail-debug-verb t)
 
 (setq nnmail-expiry-wait 30)
 
