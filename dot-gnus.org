@@ -535,6 +535,17 @@
       '(nnimap "local"
                (nnimap-stream plain)
                (nnimap-address "localhost")))
+
+(require 'smtpmail)
+
+(setq send-mail-function 'smtpmail-send-it
+      message-send-mail-function 'smtpmail-send-it
+      smtpmail-default-smtp-server "smtp.yandex.com"
+      smtpmail-smtp-service 465
+      smtpmail-smtp-server "smtp.yandex.com"
+      smtpmail-stream-type 'ssl
+      smtpmail-debug-info t
+      smtpmail-debug-verb t)
   #+end_src
 ** Expiring Mail
    Let's ask gnus to make the default expiry wait 30 days instead of the
