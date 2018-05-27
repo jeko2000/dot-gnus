@@ -527,7 +527,7 @@
 (setq gnus-message-replysign t)
    #+end_src
 * Select Methods
-  I use offlineimap to download all my mail down to my local machine.
+  I use [[http://www.offlineimap.org/][offlineimap]] to download all my mail down to my local machine.
   These then get queued up in a dovecot server running locally. Finally,
   I have gnus connect to the dovecot server as follows:
   #+begin_src emacs-lisp :tangle yes
