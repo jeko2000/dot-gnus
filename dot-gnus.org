@@ -460,7 +460,7 @@
    #+begin_src emacs-lisp :tangle yes
 (add-hook 'message-send-hook 'ispell-message)
 
-(defun jr/gnus-select-dispatch-dictionary-on-group ()
+(defun jr/message-dispatch-ispell-dictionary-on-group ()
   "Run `ispell-change-dictionary' with a dictionary appropriate for the group."
   (cond
    ((string-match
@@ -475,7 +475,7 @@
    (t
     (ispell-change-dictionary "english"))))
 
-(add-hook 'gnus-select-group-hook 'jr/gnus-select-dispatch-dictionary-on-group)
+(add-hook 'message-mode-hook 'jr/message-dispatch-ispell-dictionary-on-group)
    #+end_src
 
    Finally, we set up a binding for quoted wide replies.
