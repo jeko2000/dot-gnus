@@ -534,11 +534,60 @@
    based on the groups one posts to. Let's add our own settings here for
    consistency.
 
+   First, let's create a few constants to hold our custom message
+   citation styles and set the default to English-language messages.
+   #+begin_src emacs-lisp :tangle yes
+(defconst jr/message-cite-style-english
+  '((system-time-locale "en_US.UTF-8")
+    (message-cite-function 'message-cite-original-without-signature)
+    (message-citation-line-function 'message-insert-formatted-citation-line)
+    (message-cite-reply-position 'traditional)
+    (message-yank-prefix "> ")
+    (message-yank-cited-prefix ">")
+    (message-yank-empty-prefix ">")
+    (message-citation-line-format "On %Y-%m-%d %R %z, %N wrote:"))
+  "Custom message citation style for English-language emails.")
+
+(defconst jr/message-cite-style-spanish
+  '((system-time-locale "es_US.UTF-8")
+    (message-cite-function 'message-cite-original-without-signature)
+    (message-citation-line-function 'message-insert-formatted-citation-line)
+    (message-cite-reply-position 'traditional)
+    (message-yank-prefix "> ")
+    (message-yank-cited-prefix ">")
+    (message-yank-empty-prefix ">")
+    (message-citation-line-format "El %a, %e-%m-%Y a las %R %z, %N escribió:"))
+  "Custom message citation style for Spanish-language emails.")
+
+(setq message-cite-style 'jr/message-cite-style-english)
+   #+end_src
+
+   Let's also customize gnus-cite-attribution-suffix to account for
+   new attribution suffixes.
+   #+begin_src emacs-lisp :tangle yes
+(setq gnus-cite-attribution-suffix "\\(\\(wrote\\|writes\\|said\\|says\\|escribió\\|>\\)\\(:\\|\\.\\.\\.\\)\\|----- ?Original Message ?-----\\)[        ]*$")
+   #+end_src
+
+   Next, let's create message-style predicate functions that determine
+   which articles should get message-styles different from the
+   default.
+   #+begin_src emacs-lisp :tangle yes
+(defun jr/message-from-spanish-mailing-list-p ()
+  "Return non-nil if the current `gnus-newsgroup-name'
+corresponds to a Spanish language mailing list."
+  (string-match "^list\\.es\\." gnus-newsgroup-name))
+   #+end_src
+
+   Lastly, we set the value for the gnus-posting-styles variable.
+
    The following sets up a default signature from the file
    "~/.signature", if it exists. Then, it sets the address and
    smtp-method based on address the _original_ article was sent to.
-   Please note that these require corresponding settings on your
-   authinfo.gpg or equivalent.
+   Finally, it tests our mus sage-style predicate functions and sets
+   any custom message-style that is appropriate.
+
+   Please note that these require corresponding settings on
+   your authinfo.gpg or equivalent.
    #+begin_src emacs-lisp :tangle yes
 (setq gnus-posting-styles
       '((".*"
@@ -556,7 +605,10 @@
          ("X-Message-SMTP-Method" "smtp smtp.gmail.com 465"))
         ((header "to" "jeko2000@yandex.com")
          ("X-Message-SMTP-Method" "smtp smtp.yandex.com 465")
-         (address "jeko2000@yandex.com"))))
+         (address "jeko2000@yandex.com"))
+        ((jr/message-from-spanish-mailing-list-p)
+         (eval (set (make-local-variable 'message-cite-style)
+                    jr/message-cite-style-spanish)))))
    #+end_src
 
 ** Signing and encrypting
