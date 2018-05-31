@@ -217,9 +217,19 @@
    #+end_src
 
 ** Exiting gnus
-   Let's have gnus save its start-up files upon suspension.
+   Let's have gnus save its start-up files upon suspension and have it
+   exit if emails is getting killed.
    #+begin_src emacs-lisp :tangle yes
 (add-hook 'gnus-suspend-gnus-hook 'gnus-group-save-newsrc)
+
+(defun jr/gnus-exit-gnus ()
+  (and (fboundp 'gnus-group-exit)
+       (gnus-alive-p)
+       (with-current-buffer (get-buffer "*Group*")
+         (let (gnus-interactive-exit)
+           (gnus-group-exit)))))
+
+(add-hook 'kill-emacs-hook 'jr/gnus-exit-gnus)
    #+end_src
 
 ** Group Topics
