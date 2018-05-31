@@ -101,6 +101,15 @@
 
 (add-hook 'gnus-suspend-gnus-hook 'gnus-group-save-newsrc)
 
+(defun jr/gnus-exit-gnus ()
+  (and (fboundp 'gnus-group-exit)
+       (gnus-alive-p)
+       (with-current-buffer (get-buffer "*Group*")
+         (let (gnus-interactive-exit)
+           (gnus-group-exit)))))
+
+(add-hook 'kill-emacs-hook 'jr/gnus-exit-gnus)
+
 (add-hook 'gnus-group-mode-hook 'gnus-topic-mode)
 
 (setq gnus-topic-line-format "%i[ %A: %(%{%n%}%) ]%v\n")
@@ -174,6 +183,11 @@
 
 (setq gnus-thread-hide-subtree t)
 
+(setq gnus-thread-sort-functions
+      '(gnus-thread-sort-by-number
+        gnus-thread-sort-by-subject
+        (not gnus-thread-sort-by-total-score)))
+
 (setq gnus-thread-ignore-subject nil)
 
 (setq gnus-asynchronous t)
@@ -188,7 +202,8 @@
       gnus-article-save-directory "~/mail/saved/"
       gnus-prompt-before-saving nil)
 
-(setq mm-text-html-renderer 'gnus-w3m)
+(setq mm-text-html-renderer 'gnus-w3m
+      mm-discouraged-alternatives '("text/html" "text/richtext"))
 
 (setq gnus-signature-separator '("^-- $" "^-- *$"))
 
@@ -238,6 +253,37 @@
 (setq gnus-message-archive-group '((list "nnimap+local:Sent" (format-time-string "sent.%Y-%m")))
       gnus-gcc-mark-as-read t)
 
+(defconst jr/message-cite-style-english
+  '((system-time-locale "en_US.UTF-8")
+    (message-cite-function 'message-cite-original-without-signature)
+    (message-citation-line-function 'message-insert-formatted-citation-line)
+    (message-cite-reply-position 'traditional)
+    (message-yank-prefix "> ")
+    (message-yank-cited-prefix ">")
+    (message-yank-empty-prefix ">")
+    (message-citation-line-format "On %Y-%m-%d %R %z, %N wrote:"))
+  "Custom message citation style for English-language emails.")
+
+(defconst jr/message-cite-style-spanish
+  '((system-time-locale "es_US.UTF-8")
+    (message-cite-function 'message-cite-original-without-signature)
+    (message-citation-line-function 'message-insert-formatted-citation-line)
+    (message-cite-reply-position 'traditional)
+    (message-yank-prefix "> ")
+    (message-yank-cited-prefix ">")
+    (message-yank-empty-prefix ">")
+    (message-citation-line-format "El %a, %e-%m-%Y a las %R %z, %N escribió:"))
+  "Custom message citation style for Spanish-language emails.")
+
+(setq message-cite-style 'jr/message-cite-style-english)
+
+(setq gnus-cite-attribution-suffix "\\(\\(wrote\\|writes\\|said\\|says\\|escribió\\|>\\)\\(:\\|\\.\\.\\.\\)\\|----- ?Original Message ?-----\\)[        ]*$")
+
+(defun jr/message-from-spanish-mailing-list-p ()
+  "Return non-nil if the current `gnus-newsgroup-name'
+corresponds to a Spanish language mailing list."
+  (string-match "^list\\.es\\." gnus-newsgroup-name))
+
 (setq gnus-posting-styles
       '((".*"
          (signature user-full-name))
@@ -254,7 +300,10 @@
          ("X-Message-SMTP-Method" "smtp smtp.gmail.com 465"))
         ((header "to" "jeko2000@yandex.com")
          ("X-Message-SMTP-Method" "smtp smtp.yandex.com 465")
-         (address "jeko2000@yandex.com"))))
+         (address "jeko2000@yandex.com"))
+        ((jr/message-from-spanish-mailing-list-p)
+         (eval (set (make-local-variable 'message-cite-style)
+                    jr/message-cite-style-spanish)))))
 
 (setq gnus-message-replysign t)
 
