@@ -380,9 +380,14 @@
 (setq gnus-summary-gather-subject-limit 25)
    #+end_src
 
-   Next, let's hide sub trees by default.
+   Next, let's hide sub trees by default and sort them reasonably.
    #+begin_src emacs-lisp :tangle yes
 (setq gnus-thread-hide-subtree t)
+
+(setq gnus-thread-sort-functions
+      '(gnus-thread-sort-by-number
+        gnus-thread-sort-by-subject
+        (not gnus-thread-sort-by-total-score)))
    #+end_src
    Finally, we ask gnus to treat changes of a subject in a thread as a
    new thread.
