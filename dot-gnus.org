@@ -425,9 +425,11 @@
    #+end_src
 
 ** Article Washing
-   Let's ask gnus-w3m to render our HTML emails (since I still get those).
+   Let's ask gnus-w3m to render our HTML emails (since I still get
+   those), yet discourage them if possible.
    #+begin_src emacs-lisp :tangle yes
-(setq mm-text-html-renderer 'gnus-w3m)
+(setq mm-text-html-renderer 'gnus-w3m
+      mm-discouraged-alternatives '("text/html" "text/richtext"))
    #+end_src
 
 ** Article Signature
