@@ -533,12 +533,33 @@
    #+end_src
 
 ** Archived Messages
-   Let's have all sent messages go to the Sent folder and to another
-   archived Sent folder based on year and month. Further, let's
+   Let's have all sent messages go to the respective imap Sent folder
+   and to another archived Sent folder based on year and month. For
+   this, let's define a helper predicate function that returns non-nil
+   if we are posting from work. For convenience, let us also
    automatically mark these as read.
    #+begin_src emacs-lisp :tangle yes
-(setq gnus-message-archive-group '((list "nnimap+local:Sent" (format-time-string "sent.%Y-%m")))
-      gnus-gcc-mark-as-read t)
+     (defun jr/gnus-posting-from-work-p ()
+       "Return non-nil if `gnus-current-headers' reflect they are from
+     a work email."
+       (when gnus-current-headers
+         (let* ((extra-headers (mail-header-extra gnus-current-headers))
+                (to-header (alist-get 'To extra-headers))
+                (cc-header (alist-get 'Cc extra-headers))
+                (work-email-regex "Johnny\\.Ruiz@ticketnetwork\\.com"))
+           (or (and to-header (string-match work-email-regex to-header))
+               (and cc-header (string-match work-email-regex cc-header))))))
+
+     (defun jr/gnus-message-get-archive-group ()
+       "Return a string or list of string of groups where to save sent
+     messages."
+       (let ((imap-archive (if (jr/gnus-posting-from-work-p)
+                               "nnimap+local:tn/Sent Items"
+                             "nnimap+local:Sent")))
+         (list imap-archive (format-time-string "sent.%Y-%m"))))
+
+     (setq gnus-message-archive-group  '((jr/gnus-message-get-archive-group))
+           gnus-gcc-mark-as-read t)
    #+end_src
 
 ** Posting styles
