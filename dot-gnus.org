@@ -645,9 +645,9 @@ corresponds to a Spanish language mailing list."
 (setq send-mail-function 'smtpmail-send-it
       message-send-mail-function 'smtpmail-send-it
       smtpmail-default-smtp-server "smtp.yandex.com"
-      smtpmail-smtp-service 465
+      smtpmail-smtp-service 587
       smtpmail-smtp-server "smtp.yandex.com"
-      smtpmail-stream-type 'ssl
+      smtpmail-stream-type 'starttls
       smtpmail-debug-info t
       smtpmail-debug-verb t)
   #+end_src
