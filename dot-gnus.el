@@ -137,6 +137,13 @@
 (define-key gnus-group-mode-map "vr"
   'jr/gnus-goto-references-group)
 
+(defun jr/gnus-update-mail ()
+  (interactive)
+  (async-shell-command "offlineimap"))
+
+(define-key gnus-group-mode-map "vu"
+  'jr/gnus-update-mail)
+
 (setq gnus-summary-line-format
       "%U%R%z%&user-date;     %-40,40f    %-2,2t     %B%s\n"
       gnus-user-date-format-alist '((t . "%Y-%m-%d %H:%M")))
@@ -179,14 +186,18 @@
 
 (setq gnus-summary-make-false-root 'adopt)
 
-(setq gnus-summary-gather-subject-limit 25)
+(setq gnus-summary-gather-subject-limit 'fuzzy)
+(setq gnus-simplify-ignored-prefixes
+      (concat
+       "\\`\\[?\\("
+       (mapconcat 'identity
+        '("RE:" "re;" "FW:" "fw:") "\\|") "\\)?\\]?:?[ \t]*"))
 
 (setq gnus-thread-hide-subtree t)
 
 (setq gnus-thread-sort-functions
-      '(gnus-thread-sort-by-number
-        gnus-thread-sort-by-subject
-        (not gnus-thread-sort-by-total-score)))
+      '(gnus-thread-sort-by-subject
+        gnus-thread-sort-by-number))
 
 (setq gnus-thread-ignore-subject nil)
 
@@ -250,7 +261,26 @@
 (define-key gnus-summary-mode-map "F" 'gnus-summary-wide-reply-with-original)
 (define-key gnus-article-mode-map "F" 'gnus-article-wide-reply-with-original)
 
-(setq gnus-message-archive-group '((list "nnimap+local:Sent" (format-time-string "sent.%Y-%m")))
+(defun jr/gnus-posting-from-work-p ()
+  "Return non-nil if `gnus-current-headers' reflect they are from
+a work email."
+  (when gnus-current-headers
+    (let* ((extra-headers (mail-header-extra gnus-current-headers))
+           (to-header (alist-get 'To extra-headers))
+           (cc-header (alist-get 'Cc extra-headers))
+           (work-email-regex "Johnny\\.Ruiz@ticketnetwork\\.com"))
+      (or (and to-header (string-match work-email-regex to-header))
+          (and cc-header (string-match work-email-regex cc-header))))))
+
+(defun jr/gnus-message-get-archive-group ()
+  "Return a string or list of string of groups where to save sent
+messages."
+  (let ((imap-archive (if (jr/gnus-posting-from-work-p)
+                          "nnimap+local:tn/Sent Items"
+                        "nnimap+local:Sent")))
+    (list imap-archive (format-time-string "sent.%Y-%m"))))
+
+(setq gnus-message-archive-group  '((jr/gnus-message-get-archive-group))
       gnus-gcc-mark-as-read t)
 
 (defconst jr/message-cite-style-english
@@ -290,17 +320,26 @@ corresponds to a Spanish language mailing list."
         ((file-exists-p "~/.signature")
          (signature-file "~/.signature"))
         ((header "to" "kubb18@me.com")
-         ("X-Message-SMTP-Method" "smtp.mail.me.com")
+         ("X-Message-SMTP-Method" "smtp smtp.mail.me.com 587")
          (address "kubb18@me.com"))
         ((header "to" "kubb18@icloud.com")
-         ("X-Message-SMTP-Method" "smtp.mail.me.com")
+         ("X-Message-SMTP-Method" "smtp smtp.mail.me.com 587")
          (address "kubb18@icloud.com"))
         ((header "to" "kubb18@gmail.com")
          (address "kubb18@gmail.com")
-         ("X-Message-SMTP-Method" "smtp smtp.gmail.com 465"))
+         ("X-Message-SMTP-Method" "smtp smtp.gmail.com 587"))
         ((header "to" "jeko2000@yandex.com")
-         ("X-Message-SMTP-Method" "smtp smtp.yandex.com 465")
+         ("X-Message-SMTP-Method" "smtp smtp.yandex.com 587")
          (address "jeko2000@yandex.com"))
+
+        ((jr/gnus-posting-from-work-p)
+         ("X-Message-SMTP-Method" "smtp smtp.office365.com 587")
+         (address "Johnny.Ruiz@ticketnetwork.com")
+         (eval (set (make-local-variable 'message-cite-style)
+                    message-cite-style-outlook))
+         (signature nil)
+         (Organization "TicketNetwork"))
+
         ((jr/message-from-spanish-mailing-list-p)
          (eval (set (make-local-variable 'message-cite-style)
                     jr/message-cite-style-spanish)))))
@@ -317,9 +356,9 @@ corresponds to a Spanish language mailing list."
 (setq send-mail-function 'smtpmail-send-it
       message-send-mail-function 'smtpmail-send-it
       smtpmail-default-smtp-server "smtp.yandex.com"
-      smtpmail-smtp-service 465
+      smtpmail-smtp-service 587
       smtpmail-smtp-server "smtp.yandex.com"
-      smtpmail-stream-type 'ssl
+      smtpmail-stream-type 'starttls
       smtpmail-debug-info t
       smtpmail-debug-verb t)
 
