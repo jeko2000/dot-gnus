@@ -381,10 +381,15 @@
 (setq gnus-summary-make-false-root 'adopt)
    #+end_src
 
-   In addition, let's have gnus treat articles as threads when their
-   subject lines match in the first 25 characters.
+   In addition, let's have gnus treat articles as threads after
+   removing common prefixes.
    #+begin_src emacs-lisp :tangle yes
-(setq gnus-summary-gather-subject-limit 25)
+(setq gnus-summary-gather-subject-limit 'fuzzy)
+(setq gnus-simplify-ignored-prefixes
+      (concat
+       "\\`\\[?\\("
+       (mapconcat 'identity
+        '("RE:" "re;" "FW:" "fw:") "\\|") "\\)?\\]?:?[ \t]*"))
    #+end_src
 
    Next, let's hide sub trees by default and sort them reasonably.
