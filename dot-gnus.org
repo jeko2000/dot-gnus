@@ -275,6 +275,13 @@
 
 (define-key gnus-group-mode-map "vr"
   'jr/gnus-goto-references-group)
+
+(defun jr/gnus-update-mail ()
+  (interactive)
+  (async-shell-command "offlineimap"))
+
+(define-key gnus-group-mode-map "vu"
+  'jr/gnus-update-mail)
    #+end_src
 
 * Summary Buffer
