@@ -506,6 +506,37 @@ This function does not clear the process mark from articles."
     (dolist (article articles)
       (gnus-summary-mark-article article))))
 
+;; Move article commands
+(defun jr/gnus-mark-as-read-and-move-to-junk (arg)
+  "Move articles to a junk newsgroup.
+The articles that get moved depend on ARG and thos articles
+marked with the process mark."
+  (interactive "P")
+  (let* ((type 'junk)
+         (target (jr/gnus-get-target-newsgroup-for type)))
+    (when target
+      (jr/gnus-summary-mark-processable-as-read arg)
+      (gnus-summary-move-article arg target)
+      (message "Moved article(s) to %s." target))))
+
+(defun jr/gnus-mark-as-read-and-move-to-references (arg)
+  "Move articles to reference newsgroup.
+The articles that get moved depend on ARG and thos articles
+marked with the process mark."
+  (interactive "P")
+  (let* ((type 'references)
+         (target (jr/gnus-get-target-newsgroup-for type)))
+    (when target
+      (jr/gnus-summary-mark-processable-as-read arg)
+      (gnus-summary-move-article arg target)
+      (message "Moved article(s) to %s." target))))
+
+(define-key gnus-summary-mode-map (kbd "v J") 'jr/gnus-mark-as-read-and-move-to-junk)
+(define-key gnus-summary-mode-map (kbd "v R") 'jr/gnus-mark-as-read-and-move-to-references)
+
+(define-key gnus-article-mode-map (kbd "v J") 'jr/gnus-mark-as-read-and-move-to-junk)
+(define-key gnus-article-mode-map (kbd "v R") 'jr/gnus-mark-as-read-and-move-to-references)
+   #+end_src
 * Article Buffer
 ** Hiding Headers
    Let's set some visible headers as default as well as the order in
@@ -581,27 +612,28 @@ This function does not clear the process mark from articles."
    if we are posting from work. For convenience, let us also
    automatically mark these as read.
    #+begin_src emacs-lisp :tangle yes
-     (defun jr/gnus-posting-from-work-p ()
-       "Return non-nil if `gnus-current-headers' reflect they are from
-     a work email."
-       (when gnus-current-headers
-         (let* ((extra-headers (mail-header-extra gnus-current-headers))
-                (to-header (alist-get 'To extra-headers))
-                (cc-header (alist-get 'Cc extra-headers))
-                (work-email-regex "Johnny\\.Ruiz@ticketnetwork\\.com"))
-           (or (and to-header (string-match work-email-regex to-header))
-               (and cc-header (string-match work-email-regex cc-header))))))
+(defvar jr/gnus-work-email-header-regex "Johnny\\.Ruiz@ticketnetwork\\.com"
+  "Regular expression for work email headers")
 
-     (defun jr/gnus-message-get-archive-group ()
-       "Return a string or list of string of groups where to save sent
+(defun jr/gnus-posting-from-work-p ()
+  "Return non-nil if `gnus-current-headers' reflect they are from a work email."
+  (when gnus-current-headers
+    (let* ((extra-headers (mail-header-extra gnus-current-headers))
+           (to-header (alist-get 'To extra-headers))
+           (cc-header (alist-get 'Cc extra-headers)))
+      (or (and to-header (string-match jr/gnus-work-email-header-regex to-header))
+          (and cc-header (string-match jr/gnus-work-email-header-regex cc-header))))))
+
+(defun jr/gnus-message-get-archive-group ()
+  "Return a string or list of string of groups where to save sent
      messages."
-       (let ((imap-archive (if (jr/gnus-posting-from-work-p)
-                               "nnimap+local:tn/Sent Items"
-                             "nnimap+local:Sent")))
-         (list imap-archive (format-time-string "sent.%Y-%m"))))
+  (let ((imap-archive (if (jr/gnus-posting-from-work-p)
+                          "nnimap+local:tn/Sent Items"
+                        "nnimap+local:Sent")))
+    (list imap-archive (format-time-string "sent.%Y-%m"))))
 
-     (setq gnus-message-archive-group  '((jr/gnus-message-get-archive-group))
-           gnus-gcc-mark-as-read t)
+(setq gnus-message-archive-group  '((jr/gnus-message-get-archive-group))
+      gnus-gcc-mark-as-read t)
    #+end_src
 
 ** Posting styles
