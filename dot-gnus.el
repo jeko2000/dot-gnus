@@ -414,6 +414,15 @@ corresponds to a Spanish language mailing list."
          (Organization "TicketNetwork"))
 
         ((jr/message-from-spanish-mailing-list-p)
+         (signature
+          (string-join
+           (list user-full-name
+                 ""
+                 "_______________________________________________"
+                 "Lista de correo www-es-general"
+                 "www-es-general@gnu.org"
+                 "https://lists.gnu.org/mailman/listinfo/www-es-general")
+           "\n"))
          (eval (set (make-local-variable 'message-cite-style)
                     jr/message-cite-style-spanish)))))
 
