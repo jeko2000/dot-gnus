@@ -116,28 +116,36 @@
 
 (setq gnus-topic-display-empty-topics nil)
 
-(defun jr/gnus-goto-buffer-group ()
-  (interactive)
-  (gnus-group-jump-to-group "buffer"))
+;; Jump-to-group commands
 
-(defun jr/gnus-goto-sent-group ()
+(defun jr/gnus-jump-to-main-group ()
+  "Jump point to \"main\" newsgroup line."
+  (interactive)
+  (gnus-group-jump-to-group "main"))
+
+(defun jr/gnus-jump-to-sent-group ()
+  "Jump point to \"Sent\" newsgroup line."
   (interactive)
   (gnus-group-jump-to-group "Sent"))
 
-(defun jr/gnus-goto-references-group ()
+(defun jr/gnus-jump-to-references-group ()
+  "Jump point to \"references\" newsgroup line."
   (interactive)
   (gnus-group-jump-to-group "references"))
 
 (define-key gnus-group-mode-map "vb"
-  'jr/gnus-goto-buffer-group)
+  'jr/gnus-jump-to-main-group)
 
 (define-key gnus-group-mode-map "vs"
-  'jr/gnus-goto-sent-group)
+  'jr/gnus-jump-to-sent-group)
 
 (define-key gnus-group-mode-map "vr"
-  'jr/gnus-goto-references-group)
+  'jr/gnus-jump-to-references-group)
+
+;; Email update command
 
 (defun jr/gnus-update-mail ()
+  "Run \"offlineimap\" command asynchronously to fetch new mail."
   (interactive)
   (async-shell-command "offlineimap"))
 
@@ -222,6 +230,70 @@
 
 (add-hook 'gnus-summary-mode-hook 'hl-line-mode)
 
+;; Util
+(defvar jr/gnus-work-newsgroup-regex "^\\(tn\\|work\\)/*+"
+  "Regular expression for work-related newsgroup names")
+
+(defun jr/gnus-work-newsgroup-active-p ()
+  "Return non-nil if the current newsgroup is a work newsgroup.
+It checks if `gnus-newsgroup-name' matches the regex
+`jr/gnus-work-email-header-regex'."
+  (and (boundp 'gnus-newsgroup-name)
+       gnus-newsgroup-name
+       (string-match jr/gnus-work-newsgroup-regex gnus-newsgroup-name)))
+
+(defun jr/gnus-get-target-newsgroup-for (type)
+  "Return a newsgroup string to move an article of type TYPE."
+  (if (jr/gnus-work-newsgroup-active-p)
+      (pcase type
+        ('junk "tn/Junk Email")
+        ('references "tn/Archive")
+        ('inbox "tn/INBOX"))
+    (pcase type
+      ('junk "junk")
+      ('references "references")
+      ('inbox "main"))))
+
+(defun jr/gnus-summary-mark-processable-as-read (&optional arg)
+  "Mark articles marked with the process mark as read.
+This function does not clear the process mark from articles."
+  (interactive "P")
+  (let ((articles (gnus-summary-work-articles arg))
+        article)
+    (dolist (article articles)
+      (gnus-summary-mark-article article))))
+
+;; Move article commands
+(defun jr/gnus-mark-as-read-and-move-to-junk (arg)
+  "Move articles to a junk newsgroup.
+The articles that get moved depend on ARG and thos articles
+marked with the process mark."
+  (interactive "P")
+  (let* ((type 'junk)
+         (target (jr/gnus-get-target-newsgroup-for type)))
+    (when target
+      (jr/gnus-summary-mark-processable-as-read arg)
+      (gnus-summary-move-article arg target)
+      (message "Moved article(s) to %s." target))))
+
+(defun jr/gnus-mark-as-read-and-move-to-references (arg)
+  "Move articles to reference newsgroup.
+The articles that get moved depend on ARG and thos articles
+marked with the process mark."
+  (interactive "P")
+  (let* ((type 'references)
+         (target (jr/gnus-get-target-newsgroup-for type)))
+    (when target
+      (jr/gnus-summary-mark-processable-as-read arg)
+      (gnus-summary-move-article arg target)
+      (message "Moved article(s) to %s." target))))
+
+(define-key gnus-summary-mode-map (kbd "v J") 'jr/gnus-mark-as-read-and-move-to-junk)
+(define-key gnus-summary-mode-map (kbd "v R") 'jr/gnus-mark-as-read-and-move-to-references)
+
+(define-key gnus-article-mode-map (kbd "v J") 'jr/gnus-mark-as-read-and-move-to-junk)
+(define-key gnus-article-mode-map (kbd "v R") 'jr/gnus-mark-as-read-and-move-to-references)
+
 (setq gnus-visible-headers "^From:\\|^Newsgroups:\\|^Subject:\\|^Date:\\|^Followup-To:\\|^Reply-To:\\|^Organization:\\|^Summary:\\|^Keywords:\\|^To:\\|^[BGF]?Cc:\\|^Posted-To:\\|^Mail-Copies-To:\\|^Mail-Followup-To:\\|^Apparently-To:\\|^Gnus-Warning:\\|^Resent-From:\\|^User-Agent: "
       gnus-sorted-header-list '("^Date:" "^From:" "^Summary:" "^Keywords:" "^Newsgroups:" "^Followup-To:" "^To:" "^Reply-To:" "^Cc:" "^Organization:" "^Subject:" "User-Agent:"))
 
@@ -261,20 +333,21 @@
 (define-key gnus-summary-mode-map "F" 'gnus-summary-wide-reply-with-original)
 (define-key gnus-article-mode-map "F" 'gnus-article-wide-reply-with-original)
 
+(defvar jr/gnus-work-email-header-regex "Johnny\\.Ruiz@ticketnetwork\\.com"
+  "Regular expression for work email headers")
+
 (defun jr/gnus-posting-from-work-p ()
-  "Return non-nil if `gnus-current-headers' reflect they are from
-a work email."
+  "Return non-nil if `gnus-current-headers' reflect they are from a work email."
   (when gnus-current-headers
     (let* ((extra-headers (mail-header-extra gnus-current-headers))
            (to-header (alist-get 'To extra-headers))
-           (cc-header (alist-get 'Cc extra-headers))
-           (work-email-regex "Johnny\\.Ruiz@ticketnetwork\\.com"))
-      (or (and to-header (string-match work-email-regex to-header))
-          (and cc-header (string-match work-email-regex cc-header))))))
+           (cc-header (alist-get 'Cc extra-headers)))
+      (or (and to-header (string-match jr/gnus-work-email-header-regex to-header))
+          (and cc-header (string-match jr/gnus-work-email-header-regex cc-header))))))
 
 (defun jr/gnus-message-get-archive-group ()
   "Return a string or list of string of groups where to save sent
-messages."
+     messages."
   (let ((imap-archive (if (jr/gnus-posting-from-work-p)
                           "nnimap+local:tn/Sent Items"
                         "nnimap+local:Sent")))
