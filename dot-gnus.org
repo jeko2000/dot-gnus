@@ -255,9 +255,12 @@
 ** Misc Group Stuff
    Since the 'v' key is reserved for users (e.g., us), let's add a few bindings.
    #+begin_src emacs-lisp :tangle yes
-(defun jr/gnus-goto-buffer-group ()
+;; Jump-to-group commands
+
+(defun jr/gnus-jump-to-main-group ()
+  "Jump point to \"main\" newsgroup line."
   (interactive)
-  (gnus-group-jump-to-group "buffer"))
+  (gnus-group-jump-to-group "main"))
 
 (defun jr/gnus-goto-sent-group ()
   (interactive)
@@ -268,7 +271,7 @@
   (gnus-group-jump-to-group "references"))
 
 (define-key gnus-group-mode-map "vb"
-  'jr/gnus-goto-buffer-group)
+  'jr/gnus-jump-to-main-group)
 
 (define-key gnus-group-mode-map "vs"
   'jr/gnus-goto-sent-group)
