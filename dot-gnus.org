@@ -471,6 +471,41 @@
 (add-hook 'gnus-summary-mode-hook 'hl-line-mode)
    #+end_src
 
+   Finally, let's add some custom commands bound to 'v'.
+   #+begin_src emacs-lisp :tangle yes
+;; Util
+(defvar jr/gnus-work-newsgroup-regex "^\\(tn\\|work\\)/*+"
+  "Regular expression for work-related newsgroup names")
+
+(defun jr/gnus-work-newsgroup-active-p ()
+  "Return non-nil if the current newsgroup is a work newsgroup.
+It checks if `gnus-newsgroup-name' matches the regex
+`jr/gnus-work-email-header-regex'."
+  (and (boundp 'gnus-newsgroup-name)
+       gnus-newsgroup-name
+       (string-match jr/gnus-work-newsgroup-regex gnus-newsgroup-name)))
+
+(defun jr/gnus-get-target-newsgroup-for (type)
+  "Return a newsgroup string to move an article of type TYPE."
+  (if (jr/gnus-work-newsgroup-active-p)
+      (pcase type
+        ('junk "tn/Junk Email")
+        ('references "tn/Archive")
+        ('inbox "tn/INBOX"))
+    (pcase type
+      ('junk "junk")
+      ('references "references")
+      ('inbox "main"))))
+
+(defun jr/gnus-summary-mark-processable-as-read (&optional arg)
+  "Mark articles marked with the process mark as read.
+This function does not clear the process mark from articles."
+  (interactive "P")
+  (let ((articles (gnus-summary-work-articles arg))
+        article)
+    (dolist (article articles)
+      (gnus-summary-mark-article article))))
+
 * Article Buffer
 ** Hiding Headers
    Let's set some visible headers as default as well as the order in
