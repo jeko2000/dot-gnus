@@ -262,11 +262,13 @@
   (interactive)
   (gnus-group-jump-to-group "main"))
 
-(defun jr/gnus-goto-sent-group ()
+(defun jr/gnus-jump-to-sent-group ()
+  "Jump point to \"Sent\" newsgroup line."
   (interactive)
   (gnus-group-jump-to-group "Sent"))
 
-(defun jr/gnus-goto-references-group ()
+(defun jr/gnus-jump-to-references-group ()
+  "Jump point to \"references\" newsgroup line."
   (interactive)
   (gnus-group-jump-to-group "references"))
 
@@ -274,10 +276,12 @@
   'jr/gnus-jump-to-main-group)
 
 (define-key gnus-group-mode-map "vs"
-  'jr/gnus-goto-sent-group)
+  'jr/gnus-jump-to-sent-group)
 
 (define-key gnus-group-mode-map "vr"
-  'jr/gnus-goto-references-group)
+  'jr/gnus-jump-to-references-group)
+
+;; Email update command
 
 (defun jr/gnus-update-mail ()
   (interactive)
