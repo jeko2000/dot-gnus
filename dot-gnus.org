@@ -284,6 +284,7 @@
 ;; Email update command
 
 (defun jr/gnus-update-mail ()
+  "Run \"offlineimap\" command asynchronously to fetch new mail."
   (interactive)
   (async-shell-command "offlineimap"))
 
