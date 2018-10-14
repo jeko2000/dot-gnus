@@ -85,6 +85,10 @@
          (to-address . "savannah-announce@gnu.org")
          (to-list . "savannah-announce@gnu.org"))
 
+        ("list\\.es\\.general"
+         (to-address . "www-es-general@gnu.org")
+         (to-list . "www-es-general@gnu.org"))
+
         ("list\\.arch\\.security"
          (to-address . "arch-security@archlinux.org")
          (to-list . "arch-security@archlinux.org"))
@@ -454,3 +458,9 @@ corresponds to a Spanish language mailing list."
    (horizontal 1.0
                (vertical 40 (group 1.0))
                (vertical 1.0 (summary 1.0 point)))))
+
+(require 'gnus-icalendar)
+(gnus-icalendar-setup)
+(setq gnus-icalendar-org-capture-file org-default-notes-file)
+(setq gnus-icalendar-org-capture-headline '("Calendar"))
+(gnus-icalendar-org-setup)
