@@ -803,6 +803,17 @@ corresponds to a Spanish language mailing list."
                (vertical 1.0 (summary 1.0 point)))))
    #+end_src
 
+** iCalendar
+The following is very useful for dealing with iCalendar meeting
+requests.
+#+begin_src emacs-lisp :tangle yes
+(require 'gnus-icalendar)
+(gnus-icalendar-setup)
+(setq gnus-icalendar-org-capture-file org-default-notes-file)
+(setq gnus-icalendar-org-capture-headline '("Calendar"))
+(gnus-icalendar-org-setup)
+#+end_src
+
 * References
 ** Group Line Specs
    Here’s a list of all available format characters:
