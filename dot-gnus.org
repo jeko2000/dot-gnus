@@ -192,6 +192,10 @@
          (to-address . "savannah-announce@gnu.org")
          (to-list . "savannah-announce@gnu.org"))
 
+        ("list\\.es\\.general"
+         (to-address . "www-es-general@gnu.org")
+         (to-list . "www-es-general@gnu.org"))
+
         ("list\\.arch\\.security"
          (to-address . "arch-security@archlinux.org")
          (to-list . "arch-security@archlinux.org"))
