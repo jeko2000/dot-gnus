@@ -401,7 +401,7 @@
       (concat
        "\\`\\[?\\("
        (mapconcat 'identity
-        '("RE:" "re;" "FW:" "fw:") "\\|") "\\)?\\]?:?[ \t]*"))
+                  '("RE:" "re;" "FW:" "fw:") "\\|") "\\)?\\]?:?[ \t]*"))
    #+end_src
 
    Next, let's hide sub trees by default and sort them reasonably.
@@ -808,15 +808,15 @@ corresponds to a Spanish language mailing list."
    #+end_src
 
 ** iCalendar
-The following is very useful for dealing with iCalendar meeting
-requests.
-#+begin_src emacs-lisp :tangle yes
+   The following is very useful for dealing with iCalendar meeting
+   requests.
+   #+begin_src emacs-lisp :tangle yes
 (require 'gnus-icalendar)
 (gnus-icalendar-setup)
 (setq gnus-icalendar-org-capture-file org-default-notes-file)
 (setq gnus-icalendar-org-capture-headline '("Calendar"))
 (gnus-icalendar-org-setup)
-#+end_src
+   #+end_src
 
 * References
 ** Group Line Specs
